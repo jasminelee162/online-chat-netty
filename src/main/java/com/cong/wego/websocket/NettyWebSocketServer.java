@@ -33,7 +33,7 @@ import javax.annotation.PreDestroy;
 @Slf4j
 @Configuration
 public class NettyWebSocketServer {
-    public static final int WEB_SOCKET_PORT = 8090;
+    public static final int WEB_SOCKET_PORT = 8089;
     // 创建线程池执行器
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
