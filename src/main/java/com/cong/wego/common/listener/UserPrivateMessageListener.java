@@ -3,17 +3,13 @@ package com.cong.wego.common.listener;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cong.wego.common.event.UserPrivateMessageEvent;
 import com.cong.wego.model.dto.ws.PrivateMessageDTO;
-import com.cong.wego.model.entity.Message;
-import com.cong.wego.model.entity.Room;
-import com.cong.wego.model.entity.RoomFriend;
+import com.cong.wego.model.entity.*;
 
-import com.cong.wego.model.entity.UserRoomRelate;
 import com.cong.wego.model.enums.chat.MessageTypeEnum;
-import com.cong.wego.service.MessageService;
-import com.cong.wego.service.RoomFriendService;
-import com.cong.wego.service.RoomService;
-import com.cong.wego.service.UserRoomRelateService;
+import com.cong.wego.service.*;
 import lombok.RequiredArgsConstructor;
+
+import org.apache.xmlbeans.impl.xb.xsdschema.Attribute.Use;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -30,13 +26,12 @@ import java.util.ArrayList;
 public class UserPrivateMessageListener {
 
     private final RoomFriendService roomFriendService;
-
     private final RoomService roomService;
-
     private final UserRoomRelateService userRoomRelateService;
-
     private final MessageService messageService;
-
+    private final UserService userService;
+    private final AIChatService aiChatService;
+    
     @Async
     @EventListener(classes = UserPrivateMessageEvent.class)
     public void saveDb(UserPrivateMessageEvent event) {
@@ -68,13 +63,26 @@ public class UserPrivateMessageListener {
             userRoomRelates.add(userRoomRelate2);
             userRoomRelateService.saveBatch(userRoomRelates);
         }
-        Message message = Message.builder().fromUid(loginUserId).content(privateMessageDTO.getContent()).roomId(roomFriend.getRoomId()).build();
+        // 保存用户发送的消息
+        Message message = Message.builder()
+                .fromUid(loginUserId)
+                .content(privateMessageDTO.getContent())
+                .roomId(roomFriend.getRoomId())
+                .build();
         messageService.save(message);
 
+        
+        // 检查接收者是否是AI用户
+        User toUser = userService.getById(uid);
+        if (toUser != null && "AI".equals(toUser.getUserRole())) {
+            // 处理AI回复
+            User fromUser = userService.getById(loginUserId);
+            aiChatService.handleAIChat(fromUser, toUser, privateMessageDTO.getContent(), roomFriend.getRoomId());
+        }
+        
         //更新房间信息
         Room room = Room.builder().id(roomFriend.getRoomId()).lastMsgId(message.getId()).updateTime(message.getUpdateTime()).build();
-
+        
         roomService.updateById(room);
-
     }
 }

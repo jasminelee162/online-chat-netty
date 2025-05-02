@@ -130,4 +130,6 @@ public interface UserService extends IService<User> {
      * @return {@link TokenLoginUserVo}
      */
     TokenLoginUserVo userLoginByGithub(AuthCallback callback);
+
+    User getUserById(Long userId);
 }

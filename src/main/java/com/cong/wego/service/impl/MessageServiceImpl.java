@@ -23,8 +23,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message>
-        implements MessageService {
+public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
 
     private final WSAdapter wsAdapter;
 
@@ -58,6 +57,15 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message>
         messageVoPage.setRecords(chatMessageRespList);
         // 返回新的分页对象
         return messageVoPage;
+    }
+
+    @Override
+    public List<Message> getRoomMessages(Long roomId, Integer limit) {
+        return this.list(new LambdaQueryWrapper<Message>()
+                .eq(Message::getRoomId, roomId)
+                .orderByDesc(Message::getCreateTime)
+                .last("LIMIT " + limit)
+        );
     }
 }
 
