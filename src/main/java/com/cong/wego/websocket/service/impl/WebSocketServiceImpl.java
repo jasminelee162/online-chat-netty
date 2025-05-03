@@ -149,6 +149,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Override
     public void sendMessage(Channel channel, WSBaseReq req) {
+        System.out.println("发送消息channel");
         // 异常返回
         WSBaseResp<Object> errorResp = WSBaseResp.builder().type(1).data(ErrorCode.FORBIDDEN_ERROR.getMessage()).build();
         // 发送数据
@@ -165,6 +166,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
     @Override
     public void sendMessage(String token, WSBaseReq req) {
+        System.out.println("发送消息token");
         // 发送数据
         String content = req.getData();
         ChatMessageVo chatMessageVo = JSONUtil.toBean(content, ChatMessageVo.class);
