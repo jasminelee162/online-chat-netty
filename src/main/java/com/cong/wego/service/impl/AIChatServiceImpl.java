@@ -90,7 +90,7 @@ public class AIChatServiceImpl implements AIChatService {
         systemMessage.put("content", "你现在是一个聊天对象，你的身份是"+aiProfile);
         messages.add(systemMessage);
         
-        // 添加历史消息wa
+        // 添加历史消息
         for (Message msg : historyMessages) {
             Map<String, String> messageMap = new HashMap<>();
             messageMap.put("role", msg.getFromUid().equals(aiUser.getId()) ? "assistant" : "user");

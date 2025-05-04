@@ -6,7 +6,11 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 群聊房间表
@@ -15,6 +19,9 @@ import lombok.Data;
  */
 @TableName(value ="room_group")
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class RoomGroup implements Serializable {
     /**
      * id

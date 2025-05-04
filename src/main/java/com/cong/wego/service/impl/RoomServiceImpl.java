@@ -11,6 +11,7 @@ import com.cong.wego.model.dto.friend.FriendQueryRequest;
 import com.cong.wego.model.entity.*;
 import com.cong.wego.model.enums.chat.FriendSearchTypeEnum;
 import com.cong.wego.model.enums.chat.FriendTargetTypeEnum;
+import com.cong.wego.model.enums.chat.MessageTypeEnum;
 import com.cong.wego.model.enums.chat.RoomTypeEnum;
 import com.cong.wego.model.vo.friend.AddFriendVo;
 import com.cong.wego.model.vo.friend.FriendContentVo;
@@ -181,6 +182,34 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
     }
 
 
+    @Override
+    public Long addRoom(long fromUserID, String groupName, String groupAvatar) {
+        Room room = Room.builder().type(MessageTypeEnum.GROUP.getType()).build();
+        this.save(room);
+        RoomGroup roomGroup;
+        if(groupAvatar == null || groupAvatar.isEmpty()){
+            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar("https://th.bing.com/th/id/OIP.p_x1EwBWlc1qkKDR1jLVWgHaHa?rs=1&pid=ImgDetMain").build();
+        }else{
+            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar(groupAvatar).build();
+        }
+        roomGroupService.save(roomGroup);
+        UserRoomRelate userRoomRelate = UserRoomRelate.builder().userId(fromUserID).roomId(room.getId()).build();
+        userRoomRelateService.save(userRoomRelate);
+        return room.getId();
+    }
+
+    @Override
+    public Long addFriend(long roomID, long userID) {
+        UserRoomRelate userRoomRelate = userRoomRelateService.getOne(new LambdaQueryWrapper<UserRoomRelate>()
+               .eq(UserRoomRelate::getUserId, userID)
+               .eq(UserRoomRelate::getRoomId, roomID));
+        if (userRoomRelate == null) {
+            userRoomRelate = UserRoomRelate.builder().userId(userID).roomId(roomID).build();
+            userRoomRelateService.save(userRoomRelate);
+            return userRoomRelate.getId();
+        }
+        return null;
+    }
 }
 
 

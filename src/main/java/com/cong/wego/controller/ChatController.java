@@ -63,4 +63,17 @@ public class ChatController {
     public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
     }
+
+    @PostMapping("/room")
+    @ApiOperation(value = "新建群聊房间")
+    public BaseResponse<Long> addRoom(@RequestParam long fromUserID) {
+        return ResultUtils.success(roomService.addRoom(fromUserID, "中南大学", null));
+    }
+
+    @PostMapping("/room/invite")
+    @ApiOperation(value = "邀请用户加入群聊房间")
+    public BaseResponse<Long> invite(@RequestParam long roomID,
+                                     @RequestParam long fromUserID) {
+        return ResultUtils.success(roomService.addFriend(roomID, fromUserID));
+    }
 }
