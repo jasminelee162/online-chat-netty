@@ -3,6 +3,7 @@ package com.cong.wego.websocket.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cong.wego.model.enums.ws.WSReqTypeEnum;
 import lombok.Getter;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
+@Component
 public class SignalingSocketHandler extends TextWebSocketHandler {
 
     // 存储 WebSocket 会话，使用 sessionId 作为键
@@ -79,6 +81,20 @@ public class SignalingSocketHandler extends TextWebSocketHandler {
             this.from = from;
             this.to = to;
             this.type = type;
+        }
+    }
+    public void sendSignalMessage(VideoSignalMessage message) {
+        String toUserId = message.getTo();
+        WebSocketSession targetSession = sessions.get(toUserId);
+
+        if (targetSession != null && targetSession.isOpen()) {
+            try {
+                targetSession.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(message)));
+            } catch (IOException e) {
+                System.out.println("Error sending signal message: " + e.getMessage());
+            }
+        } else {
+            System.out.println("Target user " + toUserId + " is not online.");
         }
     }
 }
