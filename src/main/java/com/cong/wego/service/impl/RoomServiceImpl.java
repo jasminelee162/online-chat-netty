@@ -11,6 +11,7 @@ import com.cong.wego.model.dto.friend.FriendQueryRequest;
 import com.cong.wego.model.entity.*;
 import com.cong.wego.model.enums.chat.FriendSearchTypeEnum;
 import com.cong.wego.model.enums.chat.FriendTargetTypeEnum;
+import com.cong.wego.model.enums.chat.MessageTypeEnum;
 import com.cong.wego.model.enums.chat.RoomTypeEnum;
 import com.cong.wego.model.vo.friend.AddFriendVo;
 import com.cong.wego.model.vo.friend.FriendContentVo;
@@ -181,6 +182,55 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
     }
 
 
+    @Override
+    public Long addRoom(long fromUserID, String groupName, String groupAvatar) {
+        Room room = Room.builder().type(MessageTypeEnum.GROUP.getType()).build();
+        this.save(room);
+        RoomGroup roomGroup;
+        if(groupAvatar == null || groupAvatar.isEmpty()){
+            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar("https://th.bing.com/th/id/OIP.p_x1EwBWlc1qkKDR1jLVWgHaHa?rs=1&pid=ImgDetMain").build();
+        }else{
+            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar(groupAvatar).build();
+        }
+        roomGroupService.save(roomGroup);
+        UserRoomRelate userRoomRelate = UserRoomRelate.builder().userId(fromUserID).roomId(room.getId()).build();
+        userRoomRelateService.save(userRoomRelate);
+        return room.getId();
+    }
+
+    @Override
+    public Long addFriend(long roomID, long userID) {
+        UserRoomRelate userRoomRelate = userRoomRelateService.getOne(new LambdaQueryWrapper<UserRoomRelate>()
+               .eq(UserRoomRelate::getUserId, userID)
+               .eq(UserRoomRelate::getRoomId, roomID));
+        if (userRoomRelate == null) {
+            userRoomRelate = UserRoomRelate.builder().userId(userID).roomId(roomID).build();
+            userRoomRelateService.save(userRoomRelate);
+            return userRoomRelate.getId();
+        }
+        return null;
+    }
+
+    @Override
+    public Long addAIChatRoom(Long AIId, Long userId) {
+        long uid1 = Math.min(AIId, userId);
+        long uid2 = Math.max(AIId, userId);
+        // 1、保存房间
+        Room room = Room.builder().type(MessageTypeEnum.PRIVATE.getType()).build();
+        this.save(room);
+        // 2、保存私聊房间
+        RoomFriend roomFriend = RoomFriend.builder().roomKey(uid1 + "_" + uid2).uid1(uid1).uid2(uid2).roomId(room.getId()).build();
+        roomFriendService.save(roomFriend);
+        //3.保存两个房间与用户关系
+        ArrayList<UserRoomRelate> userRoomRelates = new ArrayList<>();
+        UserRoomRelate userRoomRelate1 = UserRoomRelate.builder().userId(uid1).roomId(room.getId()).build();
+        UserRoomRelate userRoomRelate2 = UserRoomRelate.builder().userId(uid2).roomId(room.getId()).build();
+        userRoomRelates.add(userRoomRelate1);
+        userRoomRelates.add(userRoomRelate2);
+        userRoomRelateService.saveBatch(userRoomRelates);
+
+        return room.getId();
+    }
 }
 
 

@@ -2,6 +2,8 @@ package com.cong.wego.model.vo.message;
 
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * 聊天消息VO
  *
@@ -15,5 +17,6 @@ public class ChatMessageVo {
      */
     private Integer type;
     private String content;
+    private Date sendTime;
 
 }

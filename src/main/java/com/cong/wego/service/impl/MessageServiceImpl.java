@@ -49,7 +49,8 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         // 获取分页结果中的消息列表 翻转
         List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
         // 将消息列表转换为ChatMessageResp对象列表
-        List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item -> wsAdapter.getMessageVo(item.getFromUid(), item.getContent()))
+        List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item ->
+                        wsAdapter.getMessageVo(item.getFromUid(), item.getContent(), item.getCreateTime()))
                 .collect(Collectors.toList());
         // 创建新的分页对象，用于存储转换后的消息对象
         Page<ChatMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());

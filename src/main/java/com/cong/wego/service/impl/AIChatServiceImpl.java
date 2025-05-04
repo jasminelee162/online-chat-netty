@@ -1,12 +1,12 @@
 package com.cong.wego.service.impl;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.cong.wego.model.dto.ws.PrivateMessageDTO;
-import com.cong.wego.model.entity.Message;
-import com.cong.wego.model.entity.User;
+import com.cong.wego.model.entity.*;
+import com.cong.wego.model.enums.chat.MessageTypeEnum;
 import com.cong.wego.model.vo.ws.response.ChatMessageResp;
 import com.cong.wego.model.vo.ws.response.WSBaseResp;
-import com.cong.wego.service.AIChatService;
-import com.cong.wego.service.MessageService;
+import com.cong.wego.service.*;
 import com.cong.wego.config.ZhipuConfig;
 import com.cong.wego.websocket.adapter.WSAdapter;
 import com.cong.wego.websocket.service.WebSocketService;
@@ -18,11 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
-import com.cong.wego.common.event.AIMessageSendEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
+
+import static com.cong.wego.constant.SystemConstants.SALT;
+import static com.cong.wego.constant.UserConstant.DEFAULT_AVATAR;
 
 @Slf4j
 @Service
@@ -32,12 +35,12 @@ public class AIChatServiceImpl implements AIChatService {
     private final ZhipuConfig zhipuConfig; // 改为使用ZhipuConfig
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher applicationEventPublisher; // 添加事件发布器
-    private User aiUser;
     private final WSAdapter wsAdapter;
     private final WebSocketServiceImpl webSocketService;
+    private final RoomService roomService;
+    private final UserService userService;
 
-    private String callAIApi(List<Message> historyMessages, String currentMessage, String aiProfile) {
+    private String callAIApi(List<Message> historyMessages, String currentMessage, User aiUser) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -45,7 +48,7 @@ public class AIChatServiceImpl implements AIChatService {
             
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", zhipuConfig.getModel());
-            requestBody.put("messages", formatMessages(historyMessages, currentMessage, aiProfile));
+            requestBody.put("messages", formatMessages(historyMessages, currentMessage, aiUser));
             // 添加智谱API特有的参数
             requestBody.put("temperature", 0.7);
             requestBody.put("top_p", 0.7);
@@ -81,16 +84,17 @@ public class AIChatServiceImpl implements AIChatService {
         }
     }
 
-    private List<Map<String, String>> formatMessages(List<Message> historyMessages, String currentMessage, String aiProfile) {
+    private List<Map<String, String>> formatMessages(List<Message> historyMessages, String currentMessage, User aiUser) {
         List<Map<String, String>> messages = new ArrayList<>();
         
         // 添加AI性格设定
         Map<String, String> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", "你现在是一个聊天对象，你的身份是"+aiProfile);
+        systemMessage.put("content", "你现在是一个聊天对象，"+"你的名字是"+aiUser.getUserName()+"你的身份是"+ aiUser.getUserAccount()+"你的性格为"+aiUser.getUserProfile()
+                +"，你是一个非常有个性的人，你会根据你的身份和性格来回复用户的消息，进行互动，请沉浸在这个身份和性格中，根据以往的聊天记录继续聊天。");
         messages.add(systemMessage);
         
-        // 添加历史消息wa
+        // 添加历史消息
         for (Message msg : historyMessages) {
             Map<String, String> messageMap = new HashMap<>();
             messageMap.put("role", msg.getFromUid().equals(aiUser.getId()) ? "assistant" : "user");
@@ -109,17 +113,14 @@ public class AIChatServiceImpl implements AIChatService {
 
     @Override
     public Message handleAIChat(User fromUser, User aiUser, String content, Long roomId) {
-        this.aiUser = aiUser;
-        // 1. 获取历史对话
+        // 获取历史对话
         List<Message> historyMessages = messageService.getRoomMessages(roomId, 10);
-        
-        // 2. 构建AI请求
-        String aiProfile = aiUser.getUserProfile(); // AI的性格设定
 
-        // 3. 调用AI接口获取回复
-        String aiReply = callAIApi(historyMessages, content, aiProfile);
+
+        // 调用AI接口获取回复
+        String aiReply = callAIApi(historyMessages, content, aiUser);
         
-        // 4. 保存AI回复消息
+        // 保存AI回复消息
         Message aiMessage = Message.builder()
                 .fromUid(aiUser.getId())
                 .content(aiReply)
@@ -130,25 +131,40 @@ public class AIChatServiceImpl implements AIChatService {
 
         messageService.save(aiMessage);
 
-        // 5. 构建私聊消息DTO
+        // 构建私聊消息DTO
         PrivateMessageDTO privateMessageDTO = PrivateMessageDTO.builder()
                 .content(aiReply)
                 .fromUserId(aiUser.getId())
                 .toUserId(fromUser.getId())
                 .build();
 
-        // 6. 构建WebSocket响应并发送
+        // 构建WebSocket响应并发送
         WSBaseResp<ChatMessageResp> baseResp = wsAdapter.buildPrivateMessageResp(privateMessageDTO);
         webSocketService.sendToUid(baseResp, fromUser.getId());
-        
-        // 5. 发布消息发送事件，触发WebSocket推送
-        applicationEventPublisher.publishEvent(new AIMessageSendEvent(
-            this,
-            aiMessage,
-            fromUser.getId(),
-            roomId
-        ));
+
+        Room room = Room.builder()
+                .id(roomId)
+                .lastMsgId(aiMessage.getId())
+                .updateTime(aiMessage.getUpdateTime())
+                .build();
+        roomService.updateById(room);
         
         return aiMessage;
+    }
+
+    @Override
+    public Long addAI(Long userId, String AIAccount, String AIName, String AIProfile) {
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + "AI").getBytes());
+        User aiUser = User.builder()
+               .userAccount(AIAccount)
+                .userAvatar(DEFAULT_AVATAR)
+                .userPassword(encryptPassword)
+               .userName(AIName)
+                .userRole("AI")
+               .userProfile(AIProfile).build();
+        userService.save(aiUser);
+        Long aiId = aiUser.getId();
+        Long roomId = roomService.addAIChatRoom(aiId, userId);
+        return roomId;
     }
 }

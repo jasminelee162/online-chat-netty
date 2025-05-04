@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.Date;
 
 /**
  * ws适配器
@@ -32,7 +33,7 @@ public class WSAdapter {
         Long loginUserId = privateMessageDTO.getFromUserId();
         //发送信息
         String content = privateMessageDTO.getContent();
-        ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content);
+        ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content, null);
         // 创建WSBaseResp对象
         WSBaseResp<ChatMessageResp> wsBaseResp = new WSBaseResp<>();
         // 设置房间ID
@@ -55,7 +56,7 @@ public class WSAdapter {
         Long loginUserId = groupMessageDTO.getFromUserId();
         //发送信息
         String content = groupMessageDTO.getContent();
-        ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content);
+        ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content, null);
         // 创建WSBaseResp对象
         WSBaseResp<ChatMessageResp> wsBaseResp = new WSBaseResp<>();
         // 设置房间ID
@@ -67,7 +68,7 @@ public class WSAdapter {
     }
 
     @NotNull
-    public ChatMessageResp getMessageVo(Long loginUserId, String content) {
+    public ChatMessageResp getMessageVo(Long loginUserId, String content, Date sendTime) {
         // 创建ChatMessageResp对象
         ChatMessageResp chatMessageResp = new ChatMessageResp();
         // 获取登录用户的信息
@@ -82,10 +83,12 @@ public class WSAdapter {
         chatMessageResp.setFromUser(userInfo);
         // 创建Message对象
         ChatMessageResp.Message message = new ChatMessageResp.Message();
-        // 设置私信内容
+        // 设置私信内容和时间
         message.setContent(content);
+        message.setSendTime(sendTime);
         // 设置消息对象
         chatMessageResp.setMessage(message);
+        // 设置消息时间
 
         return chatMessageResp;
     }

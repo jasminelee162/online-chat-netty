@@ -41,5 +41,9 @@ public interface RoomService extends IService<Room> {
      */
     AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest);
 
+    Long addRoom(long fromUserID, String groupName, String groupAvatar);
 
+    Long addFriend(long roomID, long userID);
+
+    Long addAIChatRoom(Long AIId, Long userId);
 }
