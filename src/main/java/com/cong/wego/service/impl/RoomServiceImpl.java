@@ -210,6 +210,27 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
         }
         return null;
     }
+
+    @Override
+    public Long addAIChatRoom(Long AIId, Long userId) {
+        long uid1 = Math.min(AIId, userId);
+        long uid2 = Math.max(AIId, userId);
+        // 1、保存房间
+        Room room = Room.builder().type(MessageTypeEnum.PRIVATE.getType()).build();
+        this.save(room);
+        // 2、保存私聊房间
+        RoomFriend roomFriend = RoomFriend.builder().roomKey(uid1 + "_" + uid2).uid1(uid1).uid2(uid2).roomId(room.getId()).build();
+        roomFriendService.save(roomFriend);
+        //3.保存两个房间与用户关系
+        ArrayList<UserRoomRelate> userRoomRelates = new ArrayList<>();
+        UserRoomRelate userRoomRelate1 = UserRoomRelate.builder().userId(uid1).roomId(room.getId()).build();
+        UserRoomRelate userRoomRelate2 = UserRoomRelate.builder().userId(uid2).roomId(room.getId()).build();
+        userRoomRelates.add(userRoomRelate1);
+        userRoomRelates.add(userRoomRelate2);
+        userRoomRelateService.saveBatch(userRoomRelates);
+
+        return room.getId();
+    }
 }
 
 

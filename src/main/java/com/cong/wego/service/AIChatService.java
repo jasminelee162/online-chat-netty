@@ -15,5 +15,5 @@ public interface AIChatService {
      */
     Message handleAIChat(User fromUser, User aiUser, String content, Long roomId);
 
-    Long addAIChatRoom(Long roomId, Long userId);
+    Long addAI(Long userId ,String AIAccount, String AIName, String AIProfile);
 }

@@ -4,6 +4,7 @@ import com.cong.wego.config.WxOpenConfig;
 import javax.annotation.Resource;
 
 import com.cong.wego.service.RoomService;
+import com.cong.wego.service.impl.AIChatServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,9 @@ class ChatApplicationTests {
     @Autowired
     private RoomService roomService;
 
+    @Autowired
+    private AIChatServiceImpl aiChatService;
+
     @Test
     void contextLoads() {
         System.out.println(wxOpenConfig);
@@ -35,6 +39,7 @@ class ChatApplicationTests {
 
     @Test
     void contextLoads3() {
-        System.out.println(roomService.addFriend(9,2));
+        Long userId = 6L;
+        System.out.println(aiChatService.addAI(userId,"总裁","欧浩辰","霸道、果断、深情"));
     }
 }
