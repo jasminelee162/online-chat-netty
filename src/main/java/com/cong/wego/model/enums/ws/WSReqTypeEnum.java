@@ -20,6 +20,12 @@ public enum WSReqTypeEnum {
     CHAT(2, "发送消息"),
     AUTHORIZE(3, "登录认证"),
     HEARTBEAT(4, "心跳包"),
+    VIDEO_CALL(5, "视频通话请求"),
+    VIDEO_ACCEPT(6, "接受视频通话"),
+    VIDEO_REJECT(7, "拒绝视频通话"),
+    VIDEO_SIGNAL(8, "WebRTC 信令交换");
+
+
     ;
 
     private final Integer type;
