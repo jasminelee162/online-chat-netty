@@ -26,6 +26,7 @@ import com.cong.wego.model.enums.UserRoleEnum;
 import com.cong.wego.model.vo.user.LoginUserVO;
 import com.cong.wego.model.vo.user.TokenLoginUserVo;
 import com.cong.wego.model.vo.user.UserVO;
+import com.cong.wego.service.DrawAvatarService;
 import com.cong.wego.service.RoomService;
 import com.cong.wego.service.UserRoomRelateService;
 import com.cong.wego.service.UserService;
@@ -61,6 +62,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private UserRoomRelateService userRoomRelateService;
+
+    @Resource
+    private DrawAvatarService drawAvatarService;
 
     @Resource
     private GitHubConfig gitHubConfig;
@@ -105,7 +109,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             User user = new User();
             user.setUserAccount(userAccount);
             user.setUserPassword(encryptPassword);
-            user.setUserAvatar(DEFAULT_AVATAR);
+            String avatar = "data:image/png;base64,"+ drawAvatarService.generateImageBase64(userAccount, 50);
+            System.out.println("Avatar"+avatar);
+            //user.setUserAvatar(DEFAULT_AVATAR);
+            user.setUserAvatar(avatar);
             //默认名称+当前时间戳
             user.setUserName(DEFAULT_NICKNAME+System.currentTimeMillis());
             boolean saveResult = this.save(user);
