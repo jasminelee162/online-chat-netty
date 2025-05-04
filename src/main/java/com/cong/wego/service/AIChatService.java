@@ -14,4 +14,6 @@ public interface AIChatService {
      * @return AI的回复消息
      */
     Message handleAIChat(User fromUser, User aiUser, String content, Long roomId);
+
+    Long addAIChatRoom(Long roomId, Long userId);
 }

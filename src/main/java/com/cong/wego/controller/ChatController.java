@@ -66,8 +66,9 @@ public class ChatController {
 
     @PostMapping("/room")
     @ApiOperation(value = "新建群聊房间")
-    public BaseResponse<Long> addRoom(@RequestParam long fromUserID) {
-        return ResultUtils.success(roomService.addRoom(fromUserID, "中南大学", null));
+    public BaseResponse<Long> addRoom(@RequestParam long fromUserID,
+                                      @RequestParam String groupName) {
+        return ResultUtils.success(roomService.addRoom(fromUserID, groupName, null));
     }
 
     @PostMapping("/room/invite")
