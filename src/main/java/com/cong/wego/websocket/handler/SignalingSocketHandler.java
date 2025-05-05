@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,7 +42,7 @@ public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
             if (request != null) {
                 String uri = request.uri();
                 QueryStringDecoder decoder = new QueryStringDecoder(uri);
-                String userId = decoder.parameters().getOrDefault("userId", List.of()).stream().findFirst().orElse(null);
+                String userId = decoder.parameters().getOrDefault("userId", Collections.emptyList()).stream().findFirst().orElse(null);
 
                 if (userId != null) {
                     // 记录连接的 Channel ID

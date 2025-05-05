@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -31,7 +32,9 @@ public class VideoCallController {
         signalingSocketHandler.sendSignalMessage(message);
 
         // ✅ 返回 Java 对象，让 Spring 自动转成 application/json
-        return ResponseEntity.ok(Map.of("message", "视频通话请求已发送"));
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("message", "视频通话请求已发送");
+        return ResponseEntity.ok(responseMap);
     }
 
     @Getter
