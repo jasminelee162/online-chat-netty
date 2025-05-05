@@ -2,11 +2,9 @@ package com.cong.wego.websocket;
 
 import com.cong.wego.websocket.handler.HttpHeadersHandler;
 import com.cong.wego.websocket.handler.NettyWebSocketServerHandler;
+import com.cong.wego.websocket.handler.SignalingSocketHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -23,6 +21,8 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Netty Web 套接字服务器
@@ -37,6 +37,7 @@ public class NettyWebSocketServer {
     // 创建线程池执行器
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
+    private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
 
     /**
      * 启动 ws server
@@ -47,6 +48,7 @@ public class NettyWebSocketServer {
     public void start() throws InterruptedException {
         run();
     }
+
 
     /**
      * 销毁
@@ -89,6 +91,7 @@ public class NettyWebSocketServer {
                         pipeline.addLast(new HttpHeadersHandler());
                         //websocket
                         pipeline.addLast(new WebSocketServerProtocolHandler("/"));
+                        pipeline.addLast(new SignalingSocketHandler()); // 添加消息处理器
                         // 自定义handler ，处理业务逻辑
                         pipeline.addLast(new NettyWebSocketServerHandler());
                     }
@@ -97,5 +100,6 @@ public class NettyWebSocketServer {
         serverBootstrap.bind(WEB_SOCKET_PORT).sync();
         log.info("Netty启动成功");
     }
+
 
 }

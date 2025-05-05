@@ -3,6 +3,8 @@ package com.cong.wego.controller;
 import com.cong.wego.model.enums.ws.WSReqTypeEnum;
 
 import com.cong.wego.websocket.handler.SignalingSocketHandler;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +21,20 @@ public class VideoCallController {
     }
 
     @PostMapping("/video/call")
-    public ResponseEntity<String> initiateVideoCall(@RequestParam String fromUserId, @RequestParam String toUserId) {
-        // 构造信令消息
+    public ResponseEntity<String> initiateVideoCall(@RequestBody VideoCallRequest request) {
+        String fromUserId = request.getFromUserId();
+        String toUserId = request.getToUserId();
         SignalingSocketHandler.VideoSignalMessage message = new SignalingSocketHandler.VideoSignalMessage(fromUserId, toUserId, WSReqTypeEnum.VIDEO_CALL.name());
-        // 使用 SignalingSocketHandler 发送信令
         signalingSocketHandler.sendSignalMessage(message);
-        return ResponseEntity.ok("视频通话请求已发送");
+        return ResponseEntity.ok("{\"message\": \"视频通话请求已发送\"}");
+
     }
+
+    @Getter
+    @Setter
+    static class VideoCallRequest {
+        private String fromUserId;
+        private String toUserId;
+    }
+
 }
