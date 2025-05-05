@@ -18,5 +18,5 @@ public class ChatMessageVo {
     private Integer type;
     private String content;
     private Date sendTime;
-
+    private String toUid;
 }

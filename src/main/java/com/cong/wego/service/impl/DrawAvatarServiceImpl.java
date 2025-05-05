@@ -38,7 +38,7 @@ public class DrawAvatarServiceImpl implements DrawAvatarService {
         g2d.setPaint(Color.WHITE);
 
         // 字体设为微软雅黑，加粗
-        int fontSize = size / 2;
+        int fontSize = size / 3;
         Font font = new Font("Microsoft YaHei", Font.BOLD, fontSize);
         g2d.setFont(font);
 
