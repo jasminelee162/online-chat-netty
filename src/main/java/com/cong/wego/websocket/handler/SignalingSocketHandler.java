@@ -1,35 +1,62 @@
 package com.cong.wego.websocket.handler;
 
+import cn.hutool.core.collection.CollUtil;
+import com.cong.wego.model.vo.ws.response.WSBaseResp;
+import com.cong.wego.websocket.NettyWebSocketServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cong.wego.model.enums.ws.WSReqTypeEnum;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.util.AttributeKey;
 import lombok.Getter;
-import org.springframework.context.annotation.Bean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Component
 public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
 
+    private static final Logger log = LoggerFactory.getLogger(SignalingSocketHandler.class);
+
     // 存储 WebSocket 会话，使用 userId 作为键
     private final Map<String, ChannelHandlerContext> sessions = new ConcurrentHashMap<>();
+    // 假设 NettyWebSocketServer 中定义了 HTTP_REQUEST_KEY
+    public static final AttributeKey<FullHttpRequest> HTTP_REQUEST_KEY = AttributeKey.valueOf("HTTP_REQUEST");
+
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        // 获取用户ID并将该会话添加到sessions中
-        String userId = getUserIdFromContext(ctx);
-        if (userId != null) {
-            sessions.put(userId, ctx);
-            System.out.println("Client [" + userId + "] connected");
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
+            FullHttpRequest request = ctx.channel().attr(HTTP_REQUEST_KEY).get();
+            if (request != null) {
+                String uri = request.uri();
+                QueryStringDecoder decoder = new QueryStringDecoder(uri);
+                String userId = decoder.parameters().getOrDefault("userId", List.of()).stream().findFirst().orElse(null);
+
+                if (userId != null) {
+                    // 记录连接的 Channel ID
+                    sessions.put(userId, ctx);
+                    log.info("Client [{}] connected with Channel ID: {}", userId, ctx.channel().id().asLongText());
+                } else {
+                    ctx.close();
+                    log.warn("Connection rejected: missing userId");
+                }
+            } else {
+                ctx.close();
+                log.warn("Connection rejected: missing HTTP request");
+            }
         } else {
-            ctx.close();
-            System.out.println("Connection rejected: missing userId");
+            super.userEventTriggered(ctx, evt);
         }
     }
 
@@ -38,32 +65,13 @@ public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
         // 处理收到的消息（假设是 WebSocket 的 TextWebSocketFrame 类型消息）
         if (msg instanceof TextWebSocketFrame) {
             String payload = ((TextWebSocketFrame) msg).text();
-            VideoSignalMessage signalMessage = parseMessage(payload);
-            String fromUserId = signalMessage.getFrom();
-            String toUserId = signalMessage.getTo();
-            String signalType = signalMessage.getType();
-
-            // 查找目标用户的 ChannelHandlerContext
-            ChannelHandlerContext targetCtx = sessions.get(toUserId);
-
-            if (targetCtx != null && targetCtx.channel().isActive()) {
-                // 根据信令类型进行不同的处理
-                if (WSReqTypeEnum.VIDEO_CALL.name().equals(signalType)) {
-                    // 发起视频通话请求，转发给接收方
-                    targetCtx.writeAndFlush(new TextWebSocketFrame(payload));
-                } else if (WSReqTypeEnum.VIDEO_ACCEPT.name().equals(signalType) ||
-                        WSReqTypeEnum.VIDEO_REJECT.name().equals(signalType)) {
-                    // 接受或拒绝视频通话请求，转发给发起方
-                    ChannelHandlerContext senderCtx = sessions.get(fromUserId);
-                    if (senderCtx != null && senderCtx.channel().isActive()) {
-                        senderCtx.writeAndFlush(new TextWebSocketFrame(payload));
-                    }
-                } else {
-                    // 其他类型的信令
-                    System.out.println("Unknown signal type: " + signalType);
-                }
-            } else {
-                System.out.println("Target user " + toUserId + " is not online.");
+            try {
+                // 解析信令消息
+                VideoSignalMessage signalMessage = parseMessage(payload);
+                handleSignalMessage(signalMessage, ctx);
+            } catch (IOException e) {
+                log.error("Failed to parse message: {}", payload, e);
+                // 可以发送错误反馈给前端
             }
         }
     }
@@ -72,14 +80,56 @@ public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         // WebSocket 连接关闭时，移除该会话
         sessions.entrySet().removeIf(entry -> entry.getValue().equals(ctx));
-        System.out.println("Client disconnected: " + ctx.channel().id());
+        log.info("Client disconnected: {}", ctx.channel().id());
     }
 
-    // 从上下文中获取用户ID，这里假设通过某种方式获取用户ID
+    private void handleSignalMessage(VideoSignalMessage signalMessage, ChannelHandlerContext ctx) {
+        String fromUserId = signalMessage.getFrom();
+        String toUserId = signalMessage.getTo();
+        String signalType = signalMessage.getType();
+
+        ChannelHandlerContext targetCtx = sessions.get(toUserId);
+
+        if (targetCtx != null && targetCtx.channel().isActive()) {
+            if (WSReqTypeEnum.VIDEO_CALL.name().equals(signalType)) {
+                // 转发视频呼叫请求
+                forwardSignalMessage(signalMessage, targetCtx);
+            } else if (WSReqTypeEnum.VIDEO_ACCEPT.name().equals(signalType) ||
+                    WSReqTypeEnum.VIDEO_REJECT.name().equals(signalType)) {
+                // 接受/拒绝视频通话请求
+                forwardSignalMessage(signalMessage, sessions.get(fromUserId));
+            } else {
+                log.info("Unknown signal type: {}", signalType);
+                // 可以发送错误反馈给前端
+            }
+        } else {
+            log.info("Target user {} is not online.", toUserId);
+            // 可以发送目标用户不在线的错误反馈给前端
+        }
+    }
+
+    private void forwardSignalMessage(VideoSignalMessage message, ChannelHandlerContext targetCtx) {
+        try {
+            String jsonMessage = new ObjectMapper().writeValueAsString(message);
+            targetCtx.writeAndFlush(new TextWebSocketFrame(jsonMessage));
+            log.info("Forwarded signal message of type {} from {} to {}", message.getType(), message.getFrom(), message.getTo());
+        } catch (IOException e) {
+            log.error("Error forwarding signal message: {}", e.getMessage(), e);
+            // 可以发送错误反馈给前端
+        }
+    }
+
+    // 获取请求路径
     private String getUserIdFromContext(ChannelHandlerContext ctx) {
-        // 你可以根据实际情况从 ctx 或者消息中提取用户ID
-        // 例如：从URI中提取参数、消息中提取等
-        return null; // 假设用户ID从某种方式获得
+        FullHttpRequest req = ctx.channel().attr(HTTP_REQUEST_KEY).get();
+        if (req != null) {
+            QueryStringDecoder queryStringDecoder = new QueryStringDecoder(req.uri());
+            List<String> userIdList = queryStringDecoder.parameters().get("userId");
+            if (userIdList != null && !userIdList.isEmpty()) {
+                return userIdList.get(0);
+            }
+        }
+        return null;
     }
 
     // 解析信令消息的方法
@@ -100,7 +150,6 @@ public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
             this.to = to;
             this.type = type;
         }
-
     }
 
     // 发送信令消息的方法
@@ -110,12 +159,16 @@ public class SignalingSocketHandler extends ChannelInboundHandlerAdapter {
 
         if (targetCtx != null && targetCtx.channel().isActive()) {
             try {
-                targetCtx.writeAndFlush(new TextWebSocketFrame(new ObjectMapper().writeValueAsString(message)));
+                // 直接发送消息的JSON格式
+                String jsonMessage = new ObjectMapper().writeValueAsString(message);
+                targetCtx.writeAndFlush(new TextWebSocketFrame(jsonMessage));
+                log.info("Sent signal message of type {} from {} to {}", message.getType(), message.getFrom(), toUserId);
             } catch (IOException e) {
-                System.out.println("Error sending signal message: " + e.getMessage());
+                log.error("Error sending signal message: {}", e.getMessage(), e);
             }
         } else {
-            System.out.println("Target user " + toUserId + " is not online.");
+            log.info("Target user {} is not online.", toUserId);
+            // 可以添加错误反馈到前端，通知用户目标用户不在线
         }
     }
 }

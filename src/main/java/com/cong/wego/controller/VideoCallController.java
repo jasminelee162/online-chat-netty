@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/chat")
 public class VideoCallController {
@@ -19,15 +21,17 @@ public class VideoCallController {
     public VideoCallController(SignalingSocketHandler signalingSocketHandler) {
         this.signalingSocketHandler = signalingSocketHandler;
     }
-
     @PostMapping("/video/call")
-    public ResponseEntity<String> initiateVideoCall(@RequestBody VideoCallRequest request) {
+    public ResponseEntity<Object> initiateVideoCall(@RequestBody VideoCallRequest request) {
         String fromUserId = request.getFromUserId();
         String toUserId = request.getToUserId();
-        SignalingSocketHandler.VideoSignalMessage message = new SignalingSocketHandler.VideoSignalMessage(fromUserId, toUserId, WSReqTypeEnum.VIDEO_CALL.name());
-        signalingSocketHandler.sendSignalMessage(message);
-        return ResponseEntity.ok("{\"message\": \"视频通话请求已发送\"}");
+        SignalingSocketHandler.VideoSignalMessage message =
+                new SignalingSocketHandler.VideoSignalMessage(fromUserId, toUserId, WSReqTypeEnum.VIDEO_CALL.name());
 
+        signalingSocketHandler.sendSignalMessage(message);
+
+        // ✅ 返回 Java 对象，让 Spring 自动转成 application/json
+        return ResponseEntity.ok(Map.of("message", "视频通话请求已发送"));
     }
 
     @Getter
