@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.*;
 
 /**
@@ -41,6 +42,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
     private final RoomGroupService roomGroupService;
     private final UserFriendRelateService userFriendRelateService;
     private final FriendSearchFacade friendSearchFacade;
+
+    @Resource
+    private DrawAvatarService drawAvatarService;
 
     @Override
     public Page<RoomVo> listRoomVoByPage(RoomQueryRequest roomQueryRequest) {
@@ -188,7 +192,8 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
         this.save(room);
         RoomGroup roomGroup;
         if(groupAvatar == null || groupAvatar.isEmpty()){
-            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar("https://th.bing.com/th/id/OIP.p_x1EwBWlc1qkKDR1jLVWgHaHa?rs=1&pid=ImgDetMain").build();
+            roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName)
+                    .avatar("data:image/png;base64,"+ drawAvatarService.generateImageBase64(groupName, 50)).build();
         }else{
             roomGroup = RoomGroup.builder().roomId(room.getId()).ownerId(fromUserID).name(groupName).avatar(groupAvatar).build();
         }

@@ -110,11 +110,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setUserAccount(userAccount);
             user.setUserPassword(encryptPassword);
             String avatar = "data:image/png;base64,"+ drawAvatarService.generateImageBase64(userAccount, 50);
-            System.out.println("Avatar"+avatar);
             //user.setUserAvatar(DEFAULT_AVATAR);
             user.setUserAvatar(avatar);
             //默认名称+当前时间戳
-            user.setUserName(DEFAULT_NICKNAME+System.currentTimeMillis());
+            user.setUserName(userAccount);
             boolean saveResult = this.save(user);
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -122,10 +121,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             //用户id
             Long userId = user.getId();
             //4、加入系统群聊
+            /*
             UserRoomRelate userRoomRelate = new UserRoomRelate();
             userRoomRelate.setRoomId(SYSTEM_ROOM_ID);
             userRoomRelate.setUserId(userId);
             userRoomRelateService.save(userRoomRelate);
+             */
             //5、添加基础AI
             long AIId = 2;
             eventPublisher.publishEvent(new AddAIChatEvent(this, AIId, userId));
