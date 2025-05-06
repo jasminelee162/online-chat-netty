@@ -176,8 +176,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     private void sendByType(ChatMessageVo chatMessageVo, String token, Long uid) {
         System.out.println(chatMessageVo.getType());
-        System.out.println("sendbytype中的" + token);
-        System.out.println(chatMessageVo);
+        System.out.println(token);
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.of(chatMessageVo.getType());
         System.out.println(messageTypeEnum);
         String messageContent = chatMessageVo.getContent();

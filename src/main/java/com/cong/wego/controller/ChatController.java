@@ -47,7 +47,7 @@ public class ChatController {
     @PostMapping("/message/page/vo")
     @ApiOperation(value = "分页获取用户房间消息列表")
     public BaseResponse<Page<ChatMessageResp>> listMessageVoByPage(@RequestBody MessageQueryRequest messageQueryRequest) {
-        Page<ChatMessageResp> messageVoPage = messageService.listMessageVoByPage(messageQueryRequest);
+        Page<ChatMessageResp> messageVoPage = messageService.listTextMessageVoByPage(messageQueryRequest);
         return ResultUtils.success(messageVoPage);
     }
 

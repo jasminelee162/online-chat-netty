@@ -1,0 +1,45 @@
+package com.cong.wego.config;
+
+import cn.dev33.satoken.config.SaTokenConfig;
+import cn.dev33.satoken.interceptor.SaInterceptor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+/**
+ * Sa-Token 配置类，设置拦截器等
+ * @author 程序员聪
+ */
+@Configuration
+public class SaTokenConfigure implements WebMvcConfigurer {
+
+    /**
+     * 配置 Sa-Token 的拦截器
+     * @param registry InterceptorRegistry
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // 添加 Sa-Token 的登录认证拦截器
+        registry.addInterceptor(new SaInterceptor()).addPathPatterns("/**") // 拦截所有路径
+                .excludePathPatterns("/login", "/register", "/public/**");  // 可排除的路径（例如登录、注册等）
+
+        // 添加自定义的权限拦截器（如果有的话）
+        // registry.addInterceptor(new CustomInterceptor()).addPathPatterns("/**");
+    }
+
+    /**
+     * 配置 Sa-Token 的配置项
+     * @return SaTokenConfig 配置类
+     */
+    @Bean
+    public SaTokenConfig saTokenConfig() {
+        SaTokenConfig config = new SaTokenConfig();
+        config.setTokenName("satoken"); // 设置 token 的名称，这里是 "satoken"，前端要用这个名称
+        config.setTimeout(2592000); // 设置 token 的有效期（秒）
+        config.setIsConcurrent(true); // 支持多设备登录
+        config.setTokenStyle("uuid"); // token 风格
+        return config;
+    }
+}

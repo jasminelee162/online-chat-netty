@@ -98,8 +98,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
                         // 创建 ChatFileMessageResp 并手动设置字段
                         ChatFileMessageResp fileResp = new ChatFileMessageResp();
-                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item);
-//                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item.getContent());
+                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item.getContent());
                         fileResp.setFromUser(resp.getFromUser());
                         fileResp.setRoomId(item.getRoomId());
                         fileResp.setFileInfo(fileInfo);

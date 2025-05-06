@@ -18,7 +18,7 @@ spring:
       max-request-size: 50MB
 server:
   address: 0.0.0.0
-  port: 8869
+  port: 8089
   servlet:
     context-path: /api
     # cookie 30 天过期

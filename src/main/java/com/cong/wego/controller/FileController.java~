@@ -18,7 +18,9 @@ import com.cong.wego.model.entity.User;
 import com.cong.wego.model.enums.FileUploadBizEnum;
 import com.cong.wego.model.enums.chat.MessageTypeEnum;
 import com.cong.wego.model.vo.message.ChatMessageVo;
+import com.cong.wego.model.vo.user.UserVO;
 import com.cong.wego.model.vo.ws.request.WSBaseReq;
+import com.cong.wego.model.vo.ws.response.ChatMessageResp;
 import com.cong.wego.service.MessageService;
 import com.cong.wego.service.UserService;
 
@@ -228,18 +230,45 @@ public class FileController {
 
             log.info("[文件上传] 准备发送消息");
             // 根据消息类型发送文件给接收方
-            WSBaseReq wsBaseReq = new WSBaseReq();
-            if ("PRIVATE".equals(type)) {
-                wsBaseReq.setType(2);
-                wsBaseReq.setUserId(toUserId); // 发送给单个接收方
-                log.info("[文件上传] 发送消息给接收方: {}", wsBaseReq.getUserId());
-            } else {
-                wsBaseReq.setType(1);
-                wsBaseReq.setUserId(roomId); // 发送给群组所有成员
-            }
 
             // 发送文件信息（文件名和 URL）
-            wsBaseReq.setData(JSONUtil.toJsonStr(new ChatMessageVo(wsBaseReq.getType(), "file", originalFilename, fileUrl)));  // 发送文件信息
+//            wsBaseReq.setData(JSONUtil.toJsonStr(new ChatMessageVo(wsBaseReq.getType(), "file", originalFilename, fileUrl)));  // 发送文件信息
+
+            User user = userService.getById(userId);
+            ChatMessageResp.UserInfo userInfo = new ChatMessageResp.UserInfo();
+            userInfo.setUid(user.getId());
+            userInfo.setUsername(user.getUserName());
+//            userInfo.setAvatar(user.getAvatar());  // 如果有头像字段
+
+            chatMessageResp.setFromUser(userInfo);
+
+
+// 2. 构造前端用的消息格式
+            ChatMessageResp.Message msg = new ChatMessageResp.Message();
+            msg.setId(message.getId());
+            msg.setType(message.getType());
+//            msg.setSendTime(message.getSendTime());
+            msg.setContent(message.getContent());
+//            msg.setExtra(message.getExtra());
+
+            chatMessageResp.setMessage(msg);
+
+            chatMessageResp.setRoomId(roomId);
+
+            // ✅ 2. 构造 WebSocket 请求
+            WSBaseReq wsBaseReq = new WSBaseReq();
+            if ("PRIVATE".equals(type)) {
+                wsBaseReq.setType(2); // 私聊
+                wsBaseReq.setUserId(toUserId);
+            } else {
+                wsBaseReq.setType(1); // 群聊
+                wsBaseReq.setUserId(roomId);
+            }
+            wsBaseReq.setData(JSONUtil.toJsonStr(chatMessageResp)); // ✅ 发完整的响应对象
+
+// ✅ 3. 通过 WebSocket 推送给前端
+            webSocketService.sendMessage(token, wsBaseReq);
+
             log.info("[文件上传] 发送消息: {}", wsBaseReq.getData());
 
             // 发送消息给 WebSocket

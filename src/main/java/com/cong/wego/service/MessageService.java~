@@ -9,6 +9,8 @@ import com.cong.wego.model.vo.ws.response.ChatMessageResp;  // 如果需要文�
 
 public interface MessageService extends IService<Message> {
 
+
+
     /**
      * 按页面列出文本消息 VO
      *

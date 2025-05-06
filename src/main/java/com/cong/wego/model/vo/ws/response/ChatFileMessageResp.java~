@@ -1,0 +1,62 @@
+package com.cong.wego.model.vo.ws.response;
+
+import com.cong.wego.model.vo.message.ChatMessageVo;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+/**
+ * Description: 文件消息响应
+ * Date: 2025-05-03
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class ChatFileMessageResp {
+
+    // 添加fileInfo字段来存储文件信息
+    private ChatMessageVo.FileInfo fileInfo;
+    // FileInfo 类的定义
+    @Data
+    public static class FileInfo {
+        private String name;
+        private String url;
+        private Long size;
+        private String type;
+    }
+
+    @ApiModelProperty("发送者信息")
+    private ChatMessageResp.UserInfo fromUser;
+
+    @ApiModelProperty("文件消息详情")
+    private FileMessage fileMessage;
+
+    @ApiModelProperty("房间id")
+    private Long roomId;
+
+    @Data
+    public static class FileMessage {
+        @ApiModelProperty("消息id")
+        private Long id;
+
+        @ApiModelProperty("发送时间")
+        private Date sendTime;
+
+        @ApiModelProperty("文件下载链接")
+        private String fileUrl;
+
+        @ApiModelProperty("文件名")
+        private String fileName;
+
+        @ApiModelProperty("文件大小（单位：字节）")
+        private Long fileSize;
+
+        @ApiModelProperty("消息类型 4表示文件类型消息")
+        private Integer type = 4;
+    }
+}

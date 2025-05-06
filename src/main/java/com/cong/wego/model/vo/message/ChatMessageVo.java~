@@ -87,7 +87,7 @@ public class ChatMessageVo {
             this.name = name;
             this.url = url;
         }
-        public FileInfo() {}
+
     }
 
 }

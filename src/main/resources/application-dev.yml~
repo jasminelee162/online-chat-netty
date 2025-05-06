@@ -74,3 +74,5 @@ sa-token:
   token-style: tik
   # 是否输出操作日志
   is-log: true
+
+  token-header: Authorization  # 设置从请求头中获取 token
