@@ -94,11 +94,11 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
         return SpringUtil.getBean(WebSocketService.class);
     }
 
-    // 读取客户端发送的请求报文
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) {
         WSBaseReq wsBaseReq = JSONUtil.toBean(msg.text(), WSBaseReq.class);
         WSReqTypeEnum wsReqTypeEnum = WSReqTypeEnum.of(wsBaseReq.getType());
+
         switch (wsReqTypeEnum) {
             case LOGIN:
                 getService().handleLoginReq(ctx.channel());
@@ -106,11 +106,19 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
             case HEARTBEAT:
                 break;
             case CHAT:
-                getService().sendMessage(ctx.channel(),wsBaseReq);
+                getService().sendMessage(ctx.channel(), wsBaseReq);
+                break;
+
+            case VIDEO_CALL:
+            case  VIDEO_ACCEPT:
+            case VIDEO_REJECT:
+            case VIDEO_SIGNAL:
+                getService().handleVideoSignal(ctx.channel(), wsBaseReq);
                 break;
             default:
-                log.info("未知类型");
+                log.warn("未知类型: {}", wsBaseReq.getType());
         }
     }
+
 
 }

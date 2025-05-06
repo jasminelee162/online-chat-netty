@@ -54,4 +54,5 @@ public interface WebSocketService {
     void sendMessage(Channel channel, WSBaseReq req);
     void sendMessage(String token, WSBaseReq req);
 
+    void handleVideoSignal(Channel channel, WSBaseReq wsBaseReq);
 }

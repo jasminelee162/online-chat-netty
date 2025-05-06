@@ -271,4 +271,14 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
         return true;
     }
+    public void handleVideoSignal(Channel fromChannel, WSBaseReq signalReq) {
+        Long toUserId = JSONUtil.parseObj(signalReq.getData()).getLong("toUserId");
+        Channel toChannel = NettyUtil.getChannelByUid(toUserId);
+        if (toChannel != null && toChannel.isActive()) {
+            toChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(signalReq)));
+        } else {
+            // 用户不在线，考虑发送离线消息或提示
+            log.info("目标用户 {} 不在线", toUserId);
+        }
+    }
 }
