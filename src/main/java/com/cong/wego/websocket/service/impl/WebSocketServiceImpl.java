@@ -274,13 +274,18 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
         return true;
     }
-
     @Override
     public void handleVideoSignal(Channel fromChannel, WSBaseReq signalReq) {
         String token = NettyUtil.getAttr(fromChannel, NettyUtil.TOKEN);
+        log.debug("接收到视频信令，原始 token: {}", token);
+
         Long fromUid = Long.parseLong(StpUtil.getLoginIdByToken(token).toString());
+        log.debug("解析出 fromUid: {}", fromUid);
+
         String type = String.valueOf(signalReq.getType());
         String data = signalReq.getData();
+        log.debug("信令类型: {}, 原始数据: {}", type, data);
+
         JSONObject jsonData = JSONUtil.parseObj(data);
         Long targetUid = jsonData.getLong("targetUid");
 
@@ -288,6 +293,8 @@ public class WebSocketServiceImpl implements WebSocketService {
             log.warn("视频信令缺少目标用户ID，fromUid: {}", fromUid);
             return;
         }
+
+        log.debug("目标用户 targetUid: {}", targetUid);
 
         WSBaseResp<Object> signalResp = WSBaseResp.builder()
                 .type(Integer.valueOf(type))
@@ -303,33 +310,37 @@ public class WebSocketServiceImpl implements WebSocketService {
             return;
         }
 
-        targetChannels.forEach(channel -> threadPoolTaskExecutor.execute(() -> sendMsg(channel, signalResp)));
+        log.debug("目标用户在线通道数: {}", targetChannels.size());
+
+        targetChannels.forEach(channel -> threadPoolTaskExecutor.execute(() -> {
+            log.debug("发送信令给 channel: {}", channel.id());
+            sendMsg(channel, signalResp);
+        }));
 
         log.info("已转发视频信令，type: {}, fromUid: {}, targetUid: {}", type, fromUid, targetUid);
     }
 
     @Override
     public void handleVideoCallReq(Channel channel, WSBaseReq req) {
-        //Long toUserId = req.getUserId();
         Long toUserId = Long.valueOf(req.getTo());
-        // 获取目标用户的所有连接
+        log.debug("处理视频通话请求，toUserId: {}", toUserId);
+
         CopyOnWriteArrayList<Channel> toChannels = ONLINE_UID_MAP.get(toUserId);
 
         if (toChannels != null && !toChannels.isEmpty()) {
-            // 如果目标用户有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            log.debug("目标用户在线，连接数: {}", toChannels.size());
+
             Channel toChannel = toChannels.get(0);
 
-            // 创建视频通话请求的消息
             WSBaseReq videoCallReq = new WSBaseReq();
             videoCallReq.setType(WSReqTypeEnum.VIDEO_CALL.getType());
             videoCallReq.setFrom(req.getFrom());
             videoCallReq.setTo(req.getTo());
-            // 控制台输出显示发送的视频通话请求
-            String requestJson = JSONUtil.toJsonStr(videoCallReq);
-            System.out.println("发送的视频通话请求: " + requestJson);
 
-            // 将请求转发给目标用户
-            toChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallReq)));
+            String requestJson = JSONUtil.toJsonStr(videoCallReq);
+            log.debug("构造的视频通话请求 JSON: {}", requestJson);
+
+            toChannel.writeAndFlush(new TextWebSocketFrame(requestJson));
             log.info("已发送视频通话请求，fromUserId: {}, toUserId: {}", req.getFrom(), toUserId);
         } else {
             log.warn("目标用户不在线，无法发送视频通话请求，fromUserId: {}, toUserId: {}", req.getFrom(), toUserId);
@@ -339,20 +350,24 @@ public class WebSocketServiceImpl implements WebSocketService {
     @Override
     public void handleVideoAccept(Channel channel, WSBaseReq req) {
         Long fromUserId = Long.valueOf(req.getFrom());
-        // 获取发起视频通话请求的用户的所有连接
+        log.debug("处理视频接受请求，fromUserId: {}", fromUserId);
+
         CopyOnWriteArrayList<Channel> fromChannels = ONLINE_UID_MAP.get(fromUserId);
 
         if (fromChannels != null && !fromChannels.isEmpty()) {
-            // 如果发起者有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            log.debug("找到发起通话用户的通道，数量: {}", fromChannels.size());
+
             Channel fromChannel = fromChannels.get(0);
 
-            // 创建视频通话接受的响应消息
             WSBaseReq videoCallResp = new WSBaseReq();
             videoCallResp.setType(WSReqTypeEnum.VIDEO_ACCEPT.getType());
             videoCallResp.setFrom(req.getFrom());
             videoCallResp.setTo(req.getTo());
-            // 将接受响应发送给发起通话的用户
-            fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
+
+            String json = JSONUtil.toJsonStr(videoCallResp);
+            log.debug("构造的视频通话接受响应: {}", json);
+
+            fromChannel.writeAndFlush(new TextWebSocketFrame(json));
             log.info("已接受视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
         } else {
             log.warn("无法找到发起通话的用户，fromUserId: {}", req.getFrom());
@@ -362,20 +377,24 @@ public class WebSocketServiceImpl implements WebSocketService {
     @Override
     public void handleVideoReject(Channel channel, WSBaseReq req) {
         Long fromUserId = Long.valueOf(req.getFrom());
-        // 获取发起视频通话请求的用户的所有连接
+        log.debug("处理视频拒绝请求，fromUserId: {}", fromUserId);
+
         CopyOnWriteArrayList<Channel> fromChannels = ONLINE_UID_MAP.get(fromUserId);
 
         if (fromChannels != null && !fromChannels.isEmpty()) {
-            // 如果发起者有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            log.debug("找到发起通话用户的通道，数量: {}", fromChannels.size());
+
             Channel fromChannel = fromChannels.get(0);
 
-            // 创建视频通话拒绝的响应消息
             WSBaseReq videoCallResp = new WSBaseReq();
             videoCallResp.setType(WSReqTypeEnum.VIDEO_REJECT.getType());
             videoCallResp.setFrom(req.getFrom());
             videoCallResp.setTo(req.getTo());
-            // 将拒绝响应发送给发起通话的用户
-            fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
+
+            String json = JSONUtil.toJsonStr(videoCallResp);
+            log.debug("构造的视频通话拒绝响应: {}", json);
+
+            fromChannel.writeAndFlush(new TextWebSocketFrame(json));
             log.info("已拒绝视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
         } else {
             log.warn("无法找到发起通话的用户，fromUserId: {}", req.getFrom());
@@ -383,8 +402,11 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
 
     private Channel getChannelByUserId(String userId) {
-        // 根据用户ID获取在线的Channel
-        return ONLINE_UID_MAP.get(Long.parseLong(userId)).stream().findFirst().orElse(null);
+        log.debug("尝试获取用户通道，userId: {}", userId);
+        List<Channel> channels = ONLINE_UID_MAP.get(Long.parseLong(userId));
+        Channel result = channels != null ? channels.stream().findFirst().orElse(null) : null;
+        log.debug("获取到的 Channel: {}", result != null ? result.id() : "null");
+        return result;
     }
 
 
