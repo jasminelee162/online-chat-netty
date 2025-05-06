@@ -395,4 +395,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User getUserById(Long userId) {
         return userMapper.selectById(userId);
     }
+
+    @Override
+    public List<User> getUsersByName(String name) {
+        if (StringUtils.isBlank(name)) {
+            return new ArrayList<>();
+        }
+        // 创建查询条件
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        // 使用like进行模糊查询，同时查询用户名和账号
+        queryWrapper.like(User::getUserName, name)
+                .or()
+                .like(User::getUserAccount, name);
+        // 返回查询结果
+        return this.list(queryWrapper);
+    }
 }

@@ -15,8 +15,8 @@ public class ChatMessageVo {
     /**
      * 消息类型 1、群聊 2、私聊
      */
+    private String toUid;
     private Integer type;
     private String content;
     private Date sendTime;
-    private String toUid;
 }

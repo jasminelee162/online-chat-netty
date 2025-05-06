@@ -10,7 +10,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/wego
     username: root
-    password: sh20051015
+    password: 238373
   # Redis 配置
   # todo 需替换配置
   redis:
