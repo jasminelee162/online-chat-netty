@@ -293,6 +293,7 @@ public class WebSocketServiceImpl implements WebSocketService {
                 .type(Integer.valueOf(type))
                 .data(JSONUtil.createObj()
                         .set("fromUid", fromUid)
+                        .set("targetUid", targetUid)
                         .set("data", jsonData.get("data"))
                 ).build();
 
@@ -309,7 +310,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Override
     public void handleVideoCallReq(Channel channel, WSBaseReq req) {
-        Long toUserId = req.getUserId();
+        String toUserId = req.getTo();
         // 获取目标用户的所有连接
         CopyOnWriteArrayList<Channel> toChannels = ONLINE_UID_MAP.get(toUserId);
 
@@ -321,6 +322,10 @@ public class WebSocketServiceImpl implements WebSocketService {
             WSBaseReq videoCallReq = new WSBaseReq();
             videoCallReq.setType(WSReqTypeEnum.VIDEO_CALL.getType());
             videoCallReq.setFrom(req.getFrom());
+            videoCallReq.setTo(req.getTo());
+            // 控制台输出显示发送的视频通话请求
+            String requestJson = JSONUtil.toJsonStr(videoCallReq);
+            System.out.println("发送的视频通话请求: " + requestJson);
 
             // 将请求转发给目标用户
             toChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallReq)));
@@ -344,7 +349,7 @@ public class WebSocketServiceImpl implements WebSocketService {
             WSBaseReq videoCallResp = new WSBaseReq();
             videoCallResp.setType(WSReqTypeEnum.VIDEO_ACCEPT.getType());
             videoCallResp.setFrom(req.getFrom());
-
+            videoCallResp.setTo(req.getTo());
             // 将接受响应发送给发起通话的用户
             fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
             log.info("已接受视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
