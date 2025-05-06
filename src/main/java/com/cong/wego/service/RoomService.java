@@ -7,6 +7,7 @@ import com.cong.wego.model.entity.Room;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.cong.wego.model.vo.friend.AddFriendVo;
 import com.cong.wego.model.vo.friend.FriendContentVo;
+import com.cong.wego.model.vo.friend.FriendVo;
 import com.cong.wego.model.vo.room.RoomVo;
 
 import java.util.List;
@@ -46,4 +47,6 @@ public interface RoomService extends IService<Room> {
     Long addFriend(long roomID, long userID);
 
     Long addAIChatRoom(Long AIId, Long userId);
+
+    public List<FriendVo> getUsersNotInGroup(long roomID, long userID) ;
 }

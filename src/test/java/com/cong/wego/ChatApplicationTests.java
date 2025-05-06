@@ -59,12 +59,15 @@ class ChatApplicationTests {
 
     @Test
     void contextLoads4() {
-        String name="小";
-        List<User> users = userService.getUsersByName(name);
+        //String name="小";
+        //List<User> users = userService.getUsersByName(name);
         /*users.forEach(item -> {
             RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
             AddFriendVo addFriendVo1 = RoomServiceImpl.getAddFriendVo(item, roomFriend1);
             System.out.println(addFriendVo1);
         });*/
+        Long userId = 1L;
+        Long roomId = 9L;
+        System.out.println(roomService.getUsersNotInGroup(roomId,userId));
     }
 }
