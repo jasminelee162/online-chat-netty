@@ -108,13 +108,19 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
             case CHAT:
                 getService().sendMessage(ctx.channel(), wsBaseReq);
                 break;
-
             case VIDEO_CALL:
-            case  VIDEO_ACCEPT:
+                getService().handleVideoCallReq(ctx.channel(), wsBaseReq);
+                break;
+            case VIDEO_ACCEPT:
+                getService().handleVideoAccept(ctx.channel(), wsBaseReq);
+                break;
             case VIDEO_REJECT:
+                getService().handleVideoReject(ctx.channel(), wsBaseReq);
+                break;
             case VIDEO_SIGNAL:
                 getService().handleVideoSignal(ctx.channel(), wsBaseReq);
                 break;
+
             default:
                 log.warn("未知类型: {}", wsBaseReq.getType());
         }
