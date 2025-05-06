@@ -22,6 +22,7 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 
+import javax.annotation.Resource;
 import java.util.*;
 
 import static com.cong.wego.constant.SystemConstants.SALT;
@@ -31,6 +32,9 @@ import static com.cong.wego.constant.UserConstant.DEFAULT_AVATAR;
 @Service
 @RequiredArgsConstructor
 public class AIChatServiceImpl implements AIChatService {
+    @Resource
+    private DrawAvatarService drawAvatarService;
+
     private final MessageService messageService;
     private final ZhipuConfig zhipuConfig; // 改为使用ZhipuConfig
     private final RestTemplate restTemplate;
@@ -157,9 +161,9 @@ public class AIChatServiceImpl implements AIChatService {
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + "AI").getBytes());
         User aiUser = User.builder()
                .userAccount(AIAccount)
-                .userAvatar(DEFAULT_AVATAR)
+                .userAvatar("data:image/png;base64,"+ drawAvatarService.generateImageBase64(AIName, 50))
                 .userPassword(encryptPassword)
-               .userName(AIName)
+               .userName("[AI] "+AIName)
                 .userRole("AI")
                .userProfile(AIProfile).build();
         userService.save(aiUser);
