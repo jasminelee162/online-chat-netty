@@ -121,10 +121,11 @@ public class NettyWebSocketServer {
                         // 保存用户ip
                         pipeline.addLast(new HttpHeadersHandler());
                         // websocket
+                        pipeline.addLast(new NettyWebSocketServerHandler());
                         pipeline.addLast(new WebSocketServerProtocolHandler("/"));
                         pipeline.addLast(new SignalingSocketHandler()); // 添加消息处理器
                         // 自定义handler ，处理业务逻辑
-                        pipeline.addLast(new NettyWebSocketServerHandler());
+
                     }
                 });
         // 启动服务器，监听端口，阻塞直到启动成功
