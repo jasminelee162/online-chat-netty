@@ -165,6 +165,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
     @Override
     public void sendMessage(String token, WSBaseReq req) {
+        System.out.println("发送消息token");
         // 发送数据
         String content = req.getData();
         ChatMessageVo chatMessageVo = JSONUtil.toBean(content, ChatMessageVo.class);
@@ -197,7 +198,8 @@ public class WebSocketServiceImpl implements WebSocketService {
                 break;
             case GROUP:
                 //当用户发送群聊的时候uid就是发送的roomId
-                GroupMessageDTO groupMessageDTO = GroupMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toRoomId(uid).build();
+                GroupMessageDTO groupMessageDTO = GroupMessageDTO.builder().content(messageContent).fromUserId(loginUserId)
+                        .toRoomId(Long.parseLong(chatMessageVo.getToUid())).build();
                 //发布用户群聊事件
                 applicationEventPublisher.publishEvent(new UserGroupMessageEvent(this, groupMessageDTO));
                 //发送用户群聊

@@ -41,7 +41,7 @@ public class NettyWebSocketServer {
     public static final AttributeKey<FullHttpRequest> HTTP_REQUEST_KEY = AttributeKey.valueOf("HTTP_REQUEST");
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
-//    private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
+    private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
 
     /**
      * 启动 ws server
@@ -123,7 +123,7 @@ public class NettyWebSocketServer {
                         // websocket
                         pipeline.addLast(new NettyWebSocketServerHandler());
                         pipeline.addLast(new WebSocketServerProtocolHandler("/"));
-//                        pipeline.addLast(new SignalingSocketHandler()); // 添加消息处理器
+                        pipeline.addLast(new SignalingSocketHandler()); // 添加消息处理器
                         // 自定义handler ，处理业务逻辑
 
                     }

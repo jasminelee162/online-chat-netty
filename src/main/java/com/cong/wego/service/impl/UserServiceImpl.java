@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cong.wego.common.ErrorCode;
+import com.cong.wego.common.event.AddAIChatEvent;
 import com.cong.wego.config.GitHubConfig;
 import com.cong.wego.constant.CommonConstant;
 import com.cong.wego.constant.SystemConstants;
@@ -25,6 +26,8 @@ import com.cong.wego.model.enums.UserRoleEnum;
 import com.cong.wego.model.vo.user.LoginUserVO;
 import com.cong.wego.model.vo.user.TokenLoginUserVo;
 import com.cong.wego.model.vo.user.UserVO;
+import com.cong.wego.service.DrawAvatarService;
+import com.cong.wego.service.RoomService;
 import com.cong.wego.service.UserRoomRelateService;
 import com.cong.wego.service.UserService;
 import com.cong.wego.utils.SqlUtils;
@@ -41,8 +44,11 @@ import me.zhyd.oauth.model.AuthCallback;
 import me.zhyd.oauth.model.AuthResponse;
 import me.zhyd.oauth.model.AuthUser;
 import me.zhyd.oauth.request.AuthRequest;
+import net.bytebuddy.asm.Advice;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -58,7 +64,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private UserRoomRelateService userRoomRelateService;
 
     @Resource
+    private DrawAvatarService drawAvatarService;
+
+    @Resource
     private GitHubConfig gitHubConfig;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
+
+    // 删除原有的 RoomService 依赖
+    // @Autowired
+    // private RoomService roomService;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -90,9 +109,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             User user = new User();
             user.setUserAccount(userAccount);
             user.setUserPassword(encryptPassword);
-            user.setUserAvatar(DEFAULT_AVATAR);
+            String avatar = "data:image/png;base64,"+ drawAvatarService.generateImageBase64(userAccount, 50);
+            //user.setUserAvatar(DEFAULT_AVATAR);
+            user.setUserAvatar(avatar);
             //默认名称+当前时间戳
-            user.setUserName(DEFAULT_NICKNAME+System.currentTimeMillis());
+            user.setUserName(userAccount);
             boolean saveResult = this.save(user);
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -100,10 +121,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             //用户id
             Long userId = user.getId();
             //4、加入系统群聊
+            /*
             UserRoomRelate userRoomRelate = new UserRoomRelate();
             userRoomRelate.setRoomId(SYSTEM_ROOM_ID);
             userRoomRelate.setUserId(userId);
             userRoomRelateService.save(userRoomRelate);
+             */
+            //5、添加基础AI
+            long AIId = 2;
+            eventPublisher.publishEvent(new AddAIChatEvent(this, AIId, userId));
             return userId;
         }
     }
@@ -363,5 +389,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserName(authUser.getNickname());
         user.setUserRole(UserRoleEnum.USER.getValue());
         this.save(user);
+    }
+
+    @Override
+    public User getUserById(Long userId) {
+        return userMapper.selectById(userId);
     }
 }

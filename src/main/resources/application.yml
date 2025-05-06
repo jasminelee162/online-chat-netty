@@ -45,3 +45,13 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.cong.wego.controller
+kimi:
+  api:
+    url: https://api.moonshot.cn/v1/chat/completions
+    token: eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTc0NzgyNzAyNSwiaWF0IjoxNzQ1MjM1MDI1LCJqdGkiOiJkMDMyb2tjamMzZjYxbHFsMjFjMCIsInR5cCI6ImFjY2VzcyIsImFwcF9pZCI6ImtpbWkiLCJzdWIiOiJjcTNtZDVyM2Flc3Vob2MxdGV2MCIsInNwYWNlX2lkIjoiY3EzbWQ1cjNhZXN1aG9jMXRldGciLCJhYnN0cmFjdF91c2VyX2lkIjoiY3EzbWQ1cjNhZXN1aG9jMXRldDAiLCJyb2xlcyI6WyJ2aWRlb19nZW5fYWNjZXNzIl19.0aKkPq9wRYZS6TNMHFJd_-FsAO-bQImKa_KHAL9piPW9BO4CNfDBYxe4RSiR-1d3tJID8pk_E0MezYReSIQBKw
+    model: moonshot-v1-8k  # 添加模型配置
+zhipu:
+  api:
+    url: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    api-key: e55686b8c0c9442ea03c8770f663e320.pK41eeI5luPt8DxT
+    model: glm-4

@@ -149,6 +149,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Override
     public void sendMessage(Channel channel, WSBaseReq req) {
+        System.out.println("发送消息channel");
         // 异常返回
         WSBaseResp<Object> errorResp = WSBaseResp.builder().type(1).data(ErrorCode.FORBIDDEN_ERROR.getMessage()).build();
         // 发送数据
@@ -165,6 +166,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
     @Override
     public void sendMessage(String token, WSBaseReq req) {
+        System.out.println("发送消息token");
         // 发送数据
         String content = req.getData();
         ChatMessageVo chatMessageVo = JSONUtil.toBean(content, ChatMessageVo.class);
@@ -175,8 +177,13 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
 
     private void sendByType(ChatMessageVo chatMessageVo, String token, Long uid) {
+<<<<<<< HEAD
         System.out.println(chatMessageVo.getType());
-        System.out.println(token);
+        System.out.println("sendbytype中的" + token);
+        System.out.println(chatMessageVo);
+=======
+        System.out.println("判断发送类型");
+>>>>>>> 79c9bae585c3c8bfb0657d01236bd299663ab8cf
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.of(chatMessageVo.getType());
         System.out.println(messageTypeEnum);
         String messageContent = chatMessageVo.getContent();
@@ -196,7 +203,8 @@ public class WebSocketServiceImpl implements WebSocketService {
                 break;
             case GROUP:
                 //当用户发送群聊的时候uid就是发送的roomId
-                GroupMessageDTO groupMessageDTO = GroupMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toRoomId(uid).build();
+                GroupMessageDTO groupMessageDTO = GroupMessageDTO.builder().content(messageContent).fromUserId(loginUserId)
+                        .toRoomId(Long.parseLong(chatMessageVo.getToUid())).build();
                 //发布用户群聊事件
                 applicationEventPublisher.publishEvent(new UserGroupMessageEvent(this, groupMessageDTO));
                 //发送用户群聊

@@ -13,6 +13,7 @@ import com.cong.wego.model.vo.room.RoomVo;
 import com.cong.wego.model.vo.ws.response.ChatMessageResp;
 import com.cong.wego.service.MessageService;
 import com.cong.wego.service.RoomService;
+import com.cong.wego.service.impl.AIChatServiceImpl;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ChatController {
 
     private final RoomService roomService;
     private final MessageService messageService;
+    private final AIChatServiceImpl aIChatServiceImpl;
 
     @PostMapping("/list/page/vo")
     @ApiOperation(value = "分页获取用户房间会话列表")
@@ -62,5 +64,34 @@ public class ChatController {
     @ApiOperation(value = "获取群聊或者用户信息")
     public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
+    }
+
+    @PostMapping("/room")
+    @ApiOperation(value = "新建群聊房间")
+    public BaseResponse<Long> addRoom(@RequestParam long fromUserID,
+                                      @RequestParam String groupName,
+                                      @RequestParam String groupAvatar) {
+        return ResultUtils.success(roomService.addRoom(fromUserID, groupName, groupAvatar));
+    }
+
+    @PostMapping("/room/invite")
+    @ApiOperation(value = "邀请用户加入群聊房间")
+    public BaseResponse<Long> invite(@RequestParam long roomID,
+                                     @RequestParam long fromUserID) {
+        return ResultUtils.success(roomService.addFriend(roomID, fromUserID));
+    }
+
+    /*
+    * name是AI的名字
+    * account是AI的身份
+    * profile是AI的简介即性格
+    * */
+    @PostMapping("/AI")
+    @ApiOperation(value = "新增AI")
+    public BaseResponse<Long> AI(@RequestParam long userID,
+                                   @RequestParam String name,
+                                   @RequestParam String account,
+                                   @RequestParam String profile) {
+        return ResultUtils.success(aIChatServiceImpl.addAI(userID,account,name,profile));
     }
 }

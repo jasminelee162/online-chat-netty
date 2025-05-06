@@ -2,6 +2,8 @@ package com.cong.wego.model.vo.message;
 
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * 聊天消息 VO
  * 用于前端展示统一格式的消息（文本、文件等）
@@ -22,6 +24,8 @@ public class ChatMessageVo {
      * - 文件消息：通常放文件名或提示信息，如 "[文件] xxx.pdf"
      */
     private String content;
+    private Date sendTime;
+    private String toUid;
 
     /**
      * 内容类型：

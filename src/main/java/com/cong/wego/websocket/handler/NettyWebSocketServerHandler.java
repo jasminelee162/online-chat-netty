@@ -1,16 +1,25 @@
 package com.cong.wego.websocket.handler;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
 import com.cong.wego.model.enums.ws.WSReqTypeEnum;
 import com.cong.wego.model.vo.ws.request.WSBaseReq;
 import com.cong.wego.websocket.service.WebSocketService;
+import com.cong.wego.websocket.utils.NettyUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.cong.wego.websocket.NettyWebSocketServer.HTTP_REQUEST_KEY;
 
 
 /**
@@ -40,10 +49,9 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
      * @param ctx CTX系列
      */
     @Override
-    public void channelInactive(ChannelHandlerContext ctx){
-        // 可能出现业务判断离线后再次触发 channelInactive
-        log.warn("触发 channelInactive 掉线![{}]", ctx.channel().id());
-        userOffLine(ctx);
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        log.info("Channel inactive: {}", ctx.channel().id().asShortText());
+        super.channelInactive(ctx);
     }
 
     /**
@@ -104,4 +112,26 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
                 log.info("未知类型");
         }
     }
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (msg instanceof FullHttpRequest) {
+            FullHttpRequest request = (FullHttpRequest) msg;
+            QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
+            Map<String, List<String>> parameters = decoder.parameters();
+
+            String token = CollUtil.getFirst(parameters.get("token"));
+            String userId = CollUtil.getFirst(parameters.get("userId"));
+
+            if (token != null) {
+                NettyUtil.setAttr(ctx.channel(), NettyUtil.TOKEN, token);
+            }
+            if (userId != null) {
+                NettyUtil.setAttr(ctx.channel(), NettyUtil.UID, Long.parseLong(userId));
+            }
+
+            ctx.channel().attr(HTTP_REQUEST_KEY).set(request);
+        }
+        super.channelRead(ctx, msg);
+    }
+
 }

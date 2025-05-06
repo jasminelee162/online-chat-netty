@@ -19,6 +19,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @author 聪
+ * @description 针对表【message(消息表)】的数据库操作Service实现
+ * @createDate 2024-02-18 10:45:29
+ */
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
@@ -26,6 +31,38 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final WSAdapter wsAdapter;
     private final ObjectMapper objectMapper;
 
+    @Override
+    public Page<ChatMessageResp> listMessageVoByPage(MessageQueryRequest messageQueryRequest) {
+        Long roomId = messageQueryRequest.getRoomId();
+
+        // 获取当前页码
+        int current = messageQueryRequest.getCurrent();
+        // 获取每页大小
+        int size = messageQueryRequest.getPageSize();
+        if (roomId == null) {
+            // 创建新的分页对象，用于存储转换后的消息对象
+            Page<ChatMessageResp> messageVoPage = new Page<>(0, size, 0);
+            // 将转换后的消息对象列表设置为新的分页对象的记录
+            messageVoPage.setRecords(null);
+            return messageVoPage;
+        }
+        // 创建分页对象
+        Page<Message> messagePage = this.page(new Page<>(current, size),
+                // 创建查询条件对象
+                new LambdaQueryWrapper<Message>().eq(Message::getRoomId, roomId).orderByDesc(Message::getCreateTime));
+        // 获取分页结果中的消息列表 翻转
+        List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
+        // 将消息列表转换为ChatMessageResp对象列表
+        List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item ->
+                        wsAdapter.getMessageVo(item.getFromUid(), item.getContent(), item.getCreateTime()))
+                .collect(Collectors.toList());
+        // 创建新的分页对象，用于存储转换后的消息对象
+        Page<ChatMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());
+        // 将转换后的消息对象列表设置为新的分页对象的记录
+        messageVoPage.setRecords(chatMessageRespList);
+        // 返回新的分页对象
+        return messageVoPage;
+    }
 
     @Override
     public boolean save(Message message) {
@@ -41,19 +78,23 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     @Override
     public Page<ChatMessageResp> listTextMessageVoByPage(MessageQueryRequest messageQueryRequest) {
         Long roomId = messageQueryRequest.getRoomId();
-        int current = messageQueryRequest.getCurrent();
-        int size = messageQueryRequest.getPageSize();
 
+        // 获取当前页码
+        int current = messageQueryRequest.getCurrent();
+        // 获取每页大小
+        int size = messageQueryRequest.getPageSize();
         if (roomId == null) {
+            // 创建新的分页对象，用于存储转换后的消息对象
             Page<ChatMessageResp> messageVoPage = new Page<>(0, size, 0);
+            // 将转换后的消息对象列表设置为新的分页对象的记录
             messageVoPage.setRecords(null);
             return messageVoPage;
         }
-
-        // 获取分页信息
+        // 创建分页对象
         Page<Message> messagePage = this.page(new Page<>(current, size),
+                // 创建查询条件对象
                 new LambdaQueryWrapper<Message>().eq(Message::getRoomId, roomId).orderByDesc(Message::getCreateTime));
-
+        // 获取分页结果中的消息列表 翻转
         List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
 
         List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item -> {
@@ -64,6 +105,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         // 返回文本消息的分页数据
         Page<ChatMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());
+        // 将转换后的消息对象列表设置为新的分页对象的记录
         messageVoPage.setRecords(chatMessageRespList);
         return messageVoPage;
     }
@@ -128,4 +170,16 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         return messageVoPage;
     }
 
+    @Override
+    public List<Message> getRoomMessages(Long roomId, Integer limit) {
+        return this.list(new LambdaQueryWrapper<Message>()
+                .eq(Message::getRoomId, roomId)
+                .orderByDesc(Message::getCreateTime)
+                .last("LIMIT " + limit)
+        );
+    }
 }
+
+
+
+

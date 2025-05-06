@@ -130,6 +130,7 @@ public class NoticeMessageServiceImpl extends ServiceImpl<NoticeMessageMapper, N
             User user = userService.getById(item.getUserId()); // 查询发送用户的信息
             noticeMessageVo.setAvatar(user.getUserAvatar()); // 设置发送者头像
             noticeMessageVo.setName(user.getUserName()); // 设置发送者名称
+            noticeMessageVo.setCreateTime(item.getCreateTime());
 
             // 如果通知类型为用户添加好友请求，则设置特定的标题
             if (item.getNoticeType().equals(NoticeTypeEnum.USER.getType())) {
@@ -185,6 +186,8 @@ public class NoticeMessageServiceImpl extends ServiceImpl<NoticeMessageMapper, N
                 ChatMessageVo chatMessageVo = new ChatMessageVo();
                 chatMessageVo.setType(MessageTypeEnum.PRIVATE.getType());
                 chatMessageVo.setContent(ADD_USER_MESSAGE);
+                chatMessageVo.setSendTime(noticeMessage.getCreateTime());
+                System.out.println("消息发送时间"+chatMessageVo.getSendTime());
                 // 将聊天消息体序列化为JSON字符串，设置为消息数据
                 wsBaseReq.setData(JSONUtil.toJsonStr(chatMessageVo));
                 // 发送WebSocket消息

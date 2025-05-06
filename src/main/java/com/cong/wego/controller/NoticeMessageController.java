@@ -39,6 +39,7 @@ public class NoticeMessageController {
        noticeMessageService.addFriend(friendAddRequest);
         return ResultUtils.success(true);
     }
+
     /**
      * 连接
      * 用户SSE连接
