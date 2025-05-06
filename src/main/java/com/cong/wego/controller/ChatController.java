@@ -62,7 +62,7 @@ public class ChatController {
 
     @PostMapping("/search/friend/vo")
     @ApiOperation(value = "获取群聊或者用户信息")
-    public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
+    public BaseResponse<List<AddFriendVo>> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
     }
 

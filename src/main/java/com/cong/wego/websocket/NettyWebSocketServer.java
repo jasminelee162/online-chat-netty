@@ -40,6 +40,7 @@ public class NettyWebSocketServer {
     // 创建线程池执行器
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
+    // private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
 
     /**
      * 启动 ws server

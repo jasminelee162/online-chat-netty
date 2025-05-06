@@ -39,7 +39,7 @@ public interface RoomService extends IService<Room> {
      * @param friendQueryRequest 好友查询请求
      * @return {@link AddFriendVo}
      */
-    AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest);
+    List<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest);
 
     Long addRoom(long fromUserID, String groupName, String groupAvatar);
 

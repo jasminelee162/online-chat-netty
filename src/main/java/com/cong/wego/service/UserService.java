@@ -132,4 +132,6 @@ public interface UserService extends IService<User> {
     TokenLoginUserVo userLoginByGithub(AuthCallback callback);
 
     User getUserById(Long userId);
+
+    List<User> getUsersByName(String name);
 }

@@ -127,47 +127,30 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
     }
 
     @Override
-    public AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest) {
+    public List<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
 
+        List<AddFriendVo> addFriendVoList = new ArrayList<>();
         String id = friendQueryRequest.getId();
         // 判断ID是否为纯数字或以数字开头的字符串
-        if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
+        /*if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
+            return null;
+        }*/
+        Long uid = Long.valueOf(id);
+        User user = userService.getById(uid);
+        if (user == null) {
             return null;
         }
-        if (CommonUtils.isNumeric(id)) {
-            // 如果ID是纯数字，则查询用户信息
-            Long uid = Long.valueOf(id);
-            User user = userService.getById(uid);
-            if (user == null) {
-                return null;
-            }
-            // 查询用户和房间的关系，以确定是否为好友
-            RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
-            return getAddFriendVo(user, roomFriend);
-        } else {
-            // 如果ID不是纯数字，则尝试查询群组信息
-            String roomId = id.substring(0, id.length() - 1);
-            RoomGroup roomGroup = roomGroupService.getOne(new LambdaQueryWrapper<RoomGroup>().eq(RoomGroup::getRoomId, roomId));
-            if (roomGroup == null) {
-                return null;
-            }
-            // 封装群组信息
-            AddFriendVo addFriendVo = new AddFriendVo();
-            addFriendVo.setAvatar(roomGroup.getAvatar()); // 设置群组头像
-            addFriendVo.setType(FriendSearchTypeEnum.GROUP.getType()); // 设置查询类型为群组
-            addFriendVo.setName(roomGroup.getName()); // 设置群组名称
-            addFriendVo.setRoomId(roomGroup.getRoomId()); // 设置群组ID
-            // 查询当前用户是否已加入该群组
-            UserRoomRelate userRoomRelate = userRoomRelateService.getOne(new LambdaQueryWrapper<UserRoomRelate>()
-                    .eq(UserRoomRelate::getUserId, Long.valueOf(StpUtil.getLoginId().toString()))
-                    .eq(UserRoomRelate::getRoomId, roomId));
-            if (userRoomRelate != null) {
-                // 如果已加入，则设置好友目标类型为已加入
-                addFriendVo.setFriendTarget(FriendTargetTypeEnum.JOIN.getType());
-            }
-            return addFriendVo;
-        }
-
+        // 查询用户和房间的关系，以确定是否为好友
+        RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
+        AddFriendVo addFriendVo = getAddFriendVo(user, roomFriend);
+        addFriendVoList.add(addFriendVo);
+        List<User> users = userService.getUsersByName(id);
+        users.forEach(item -> {
+            RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
+            AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
+            addFriendVoList.add(addFriendVo1);
+        });
+        return addFriendVoList;
     }
 
     @NotNull
