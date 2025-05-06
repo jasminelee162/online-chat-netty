@@ -310,7 +310,8 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Override
     public void handleVideoCallReq(Channel channel, WSBaseReq req) {
-        String toUserId = req.getTo();
+        //Long toUserId = req.getUserId();
+        Long toUserId = Long.valueOf(req.getTo());
         // 获取目标用户的所有连接
         CopyOnWriteArrayList<Channel> toChannels = ONLINE_UID_MAP.get(toUserId);
 
@@ -372,7 +373,7 @@ public class WebSocketServiceImpl implements WebSocketService {
             WSBaseReq videoCallResp = new WSBaseReq();
             videoCallResp.setType(WSReqTypeEnum.VIDEO_REJECT.getType());
             videoCallResp.setFrom(req.getFrom());
-
+            videoCallResp.setTo(req.getTo());
             // 将拒绝响应发送给发起通话的用户
             fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
             log.info("已拒绝视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
