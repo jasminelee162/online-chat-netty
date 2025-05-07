@@ -1,6 +1,7 @@
 package com.cong.wego.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,6 +16,7 @@ import com.cong.wego.model.enums.chat.MessageTypeEnum;
 import com.cong.wego.model.enums.chat.RoomTypeEnum;
 import com.cong.wego.model.vo.friend.AddFriendVo;
 import com.cong.wego.model.vo.friend.FriendContentVo;
+import com.cong.wego.model.vo.friend.FriendVo;
 import com.cong.wego.model.vo.room.RoomVo;
 import com.cong.wego.service.*;
 import com.cong.wego.utils.CommonUtils;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author 聪
@@ -127,49 +130,60 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
     }
 
     @Override
-    public AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest) {
+    public List<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
 
+        List<AddFriendVo> addFriendVoList = new ArrayList<>();
         String id = friendQueryRequest.getId();
         // 判断ID是否为纯数字或以数字开头的字符串
-        if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
+        /*if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
             return null;
-        }
-        if (CommonUtils.isNumeric(id)) {
-            // 如果ID是纯数字，则查询用户信息
+        }*/
+        if(CommonUtils.isNumeric(id)){
             Long uid = Long.valueOf(id);
             User user = userService.getById(uid);
-            if (user == null) {
-                return null;
+            if (user != null) {
+                RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
+                AddFriendVo addFriendVo = getAddFriendVo(user, roomFriend);
+                addFriendVoList.add(addFriendVo);
             }
-            // 查询用户和房间的关系，以确定是否为好友
-            RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
-            return getAddFriendVo(user, roomFriend);
-        } else {
-            // 如果ID不是纯数字，则尝试查询群组信息
-            String roomId = id.substring(0, id.length() - 1);
-            RoomGroup roomGroup = roomGroupService.getOne(new LambdaQueryWrapper<RoomGroup>().eq(RoomGroup::getRoomId, roomId));
-            if (roomGroup == null) {
-                return null;
-            }
-            // 封装群组信息
-            AddFriendVo addFriendVo = new AddFriendVo();
-            addFriendVo.setAvatar(roomGroup.getAvatar()); // 设置群组头像
-            addFriendVo.setType(FriendSearchTypeEnum.GROUP.getType()); // 设置查询类型为群组
-            addFriendVo.setName(roomGroup.getName()); // 设置群组名称
-            addFriendVo.setRoomId(roomGroup.getRoomId()); // 设置群组ID
-            // 查询当前用户是否已加入该群组
-            UserRoomRelate userRoomRelate = userRoomRelateService.getOne(new LambdaQueryWrapper<UserRoomRelate>()
-                    .eq(UserRoomRelate::getUserId, Long.valueOf(StpUtil.getLoginId().toString()))
-                    .eq(UserRoomRelate::getRoomId, roomId));
-            if (userRoomRelate != null) {
-                // 如果已加入，则设置好友目标类型为已加入
-                addFriendVo.setFriendTarget(FriendTargetTypeEnum.JOIN.getType());
-            }
-            return addFriendVo;
         }
 
+        List<User> users = userService.getUsersByName(id);
+        users.forEach(item -> {
+            RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
+            AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
+            addFriendVoList.add(addFriendVo1);
+        });
+        return addFriendVoList;
     }
 
+    /*@Override
+    public AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest) {
+
+        List<AddFriendVo> addFriendVoList = new ArrayList<>();
+        String id = friendQueryRequest.getId();
+        // 判断ID是否为纯数字或以数字开头的字符串
+        *//*if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
+            return null;
+        }*//*
+        Long uid = Long.valueOf(id);
+        User user = userService.getById(uid);
+        if (user == null) {
+            return null;
+        }
+        // 查询用户和房间的关系，以确定是否为好友
+        RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
+        AddFriendVo addFriendVo = getAddFriendVo(user, roomFriend);
+        addFriendVoList.add(addFriendVo);
+        List<User> users = userService.getUsersByName(id);
+        users.forEach(item -> {
+            RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
+            AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
+            addFriendVoList.add(addFriendVo1);
+        });
+        return addFriendVoList.get(0);
+    }
+*/
     @NotNull
     private static AddFriendVo getAddFriendVo(User user, RoomFriend roomFriend) {
         AddFriendVo addFriendVo = new AddFriendVo();
@@ -235,6 +249,47 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
         userRoomRelateService.saveBatch(userRoomRelates);
 
         return room.getId();
+    }
+
+    @Override
+    public List<FriendVo> getUsersNotInGroup(long roomID, long userID) {
+        // 1. 获取该用户的所有好友关系
+        List<UserFriendRelate> friendRelates = userFriendRelateService.list(
+            new LambdaQueryWrapper<UserFriendRelate>()
+                .eq(UserFriendRelate::getUserId, userID)
+        );
+        
+        if (CollUtil.isEmpty(friendRelates)) {
+            return new ArrayList<>();
+        }
+        
+        // 2. 获取已在群聊中的用户ID列表
+        List<Long> groupMemberIds = userRoomRelateService.list(
+            new LambdaQueryWrapper<UserRoomRelate>()
+                .eq(UserRoomRelate::getRoomId, roomID)
+        ).stream().map(UserRoomRelate::getUserId).collect(Collectors.toList());
+        
+        // 3. 筛选出不在群聊中的好友ID
+        List<Long> friendIds = friendRelates.stream()
+            .map(UserFriendRelate::getRelateId)
+            .filter(id -> !groupMemberIds.contains(id))
+            .collect(Collectors.toList());
+        
+        if (CollUtil.isEmpty(friendIds)) {
+            return new ArrayList<>();
+        }
+        
+        // 4. 查询这些好友的用户信息
+        List<User> users = userService.listByIds(friendIds);
+        
+        // 5. 转换为FriendVo列表
+        return users.stream().map(user -> {
+            FriendVo friendVo = new FriendVo();
+            friendVo.setUid(user.getId());
+            friendVo.setName(user.getUserName());
+            friendVo.setAvatar(user.getUserAvatar());
+            return friendVo;
+        }).collect(Collectors.toList());
     }
 }
 

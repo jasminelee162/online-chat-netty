@@ -9,6 +9,7 @@ import com.cong.wego.model.dto.chat.RoomQueryRequest;
 import com.cong.wego.model.dto.friend.FriendQueryRequest;
 import com.cong.wego.model.vo.friend.AddFriendVo;
 import com.cong.wego.model.vo.friend.FriendContentVo;
+import com.cong.wego.model.vo.friend.FriendVo;
 import com.cong.wego.model.vo.room.RoomVo;
 import com.cong.wego.model.vo.ws.response.ChatMessageResp;
 import com.cong.wego.service.MessageService;
@@ -62,9 +63,15 @@ public class ChatController {
 
     @PostMapping("/search/friend/vo")
     @ApiOperation(value = "获取群聊或者用户信息")
-    public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
+    public BaseResponse<List<AddFriendVo>> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
     }
+
+    /*@PostMapping("/search/friend/vo")
+    @ApiOperation(value = "获取群聊或者用户信息")
+    public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
+        return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
+    }*/
 
     @PostMapping("/room")
     @ApiOperation(value = "新建群聊房间")
@@ -81,6 +88,12 @@ public class ChatController {
         return ResultUtils.success(roomService.addFriend(roomID, fromUserID));
     }
 
+    @GetMapping("/room/users")
+    @ApiOperation(value = "获取未在群聊房间好友列表")
+    public BaseResponse<List<FriendVo>> getUsersNotInGroup(@RequestParam long roomID,
+                                                            @RequestParam long userID) {
+        return ResultUtils.success(roomService.getUsersNotInGroup(roomID, userID));
+    }
     /*
     * name是AI的名字
     * account是AI的身份

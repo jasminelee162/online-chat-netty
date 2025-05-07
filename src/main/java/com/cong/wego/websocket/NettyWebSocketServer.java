@@ -42,6 +42,7 @@ public class NettyWebSocketServer {
     public static final AttributeKey<FullHttpRequest> HTTP_REQUEST_KEY = AttributeKey.valueOf("HTTP_REQUEST");
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
+    // private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
 
     /**
      * 启动 ws server

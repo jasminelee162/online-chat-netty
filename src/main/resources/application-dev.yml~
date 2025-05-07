@@ -9,7 +9,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/wego
     username: root
+<<<<<<< HEAD
     password: 123
+=======
+    password: 238373
+>>>>>>> ddbbfb08c55115f0663dec6d0e6f4a35b7b1dd12
   # Redis 配置
   # todo 需替换配置，然后取消注释
   redis:
@@ -74,5 +78,3 @@ sa-token:
   token-style: tik
   # 是否输出操作日志
   is-log: true
-
-  token-header: Authorization  # 设置从请求头中获取 token
