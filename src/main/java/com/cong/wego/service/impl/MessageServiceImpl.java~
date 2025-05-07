@@ -31,6 +31,91 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final WSAdapter wsAdapter;
     private final ObjectMapper objectMapper;
 
+//    @Override
+//    public Page<ChatMessageResp> listMessageVoByPage(MessageQueryRequest messageQueryRequest) {
+//        Long roomId = messageQueryRequest.getRoomId();
+//
+//        // 获取当前页码
+//        int current = messageQueryRequest.getCurrent();
+//        // 获取每页大小
+//        int size = messageQueryRequest.getPageSize();
+//        if (roomId == null) {
+//            // 创建新的分页对象，用于存储转换后的消息对象
+//            Page<ChatMessageResp> messageVoPage = new Page<>(0, size, 0);
+//            // 将转换后的消息对象列表设置为新的分页对象的记录
+//            messageVoPage.setRecords(null);
+//            return messageVoPage;
+//        }
+//        // 创建分页对象
+//        Page<Message> messagePage = this.page(new Page<>(current, size),
+//                // 创建查询条件对象
+//                new LambdaQueryWrapper<Message>().eq(Message::getRoomId, roomId).orderByDesc(Message::getCreateTime));
+//        // 获取分页结果中的消息列表 翻转
+//        List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
+//        // 将消息列表转换为ChatMessageResp对象列表
+//        List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item ->
+//                        wsAdapter.getMessageVo(item.getFromUid(), item.getContent(), item.getCreateTime()))
+//                .collect(Collectors.toList());
+//        // 创建新的分页对象，用于存储转换后的消息对象
+//        Page<ChatMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());
+//        // 将转换后的消息对象列表设置为新的分页对象的记录
+//        messageVoPage.setRecords(chatMessageRespList);
+//        // 返回新的分页对象
+//        return messageVoPage;
+//    }
+
+    /**
+     * 上面才是原本的代码，随时准备退回注意
+     * @param
+     * @return
+     */
+    @Override
+    public Page<ChatMessageResp> listMessageVoByPage(MessageQueryRequest messageQueryRequest) {
+        Long roomId = messageQueryRequest.getRoomId();
+
+        // 获取当前页码
+        int current = messageQueryRequest.getCurrent();
+        // 获取每页大小
+        int size = messageQueryRequest.getPageSize();
+
+        if (roomId == null) {
+            // 创建新的分页对象，用于存储转换后的消息对象
+            Page<ChatMessageResp> messageVoPage = new Page<>(0, size, 0);
+            // 将转换后的消息对象列表设置为新的分页对象的记录
+            messageVoPage.setRecords(null);
+            return messageVoPage;
+        }
+
+        // 创建分页对象
+        Page<Message> messagePage = this.page(new Page<>(current, size),
+                // 创建查询条件对象
+                new LambdaQueryWrapper<Message>().eq(Message::getRoomId, roomId).orderByDesc(Message::getCreateTime));
+
+        // 获取分页结果中的消息列表并翻转
+        List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
+
+        // 将消息列表转换为ChatMessageResp对象列表
+        List<ChatMessageResp> chatMessageRespList = messageList.stream().map(item -> {
+                    // 获取扩展信息extra
+                    String extra = item.getExtra();
+                    // 获取消息类型type
+                    Integer type = item.getType();
+                    // 使用新的getMessageVo方法
+                    return wsAdapter.getMessageVo(item.getFromUid(), item.getContent(), type, extra, item.getCreateTime());
+                })
+                .collect(Collectors.toList());
+
+        // 创建新的分页对象，用于存储转换后的消息对象
+        Page<ChatMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());
+        // 将转换后的消息对象列表设置为新的分页对象的记录
+        messageVoPage.setRecords(chatMessageRespList);
+
+        // 返回新的分页对象
+        return messageVoPage;
+    }
+
+
+
 
     @Override
     public boolean save(Message message) {
@@ -83,6 +168,61 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
      * @param messageQueryRequest 查询条件
      * @return 分页结果
      */
+//    @Override
+//    public Page<ChatFileMessageResp> listFileMessageVoByPage(MessageQueryRequest messageQueryRequest) {
+//        Long roomId = messageQueryRequest.getRoomId();
+//        int current = messageQueryRequest.getCurrent();
+//        int size = messageQueryRequest.getPageSize();
+//
+//        if (roomId == null) {
+//            return new Page<>(0, size, 0);
+//        }
+//
+//        // 获取分页信息
+//        Page<Message> messagePage = this.page(new Page<>(current, size),
+//                new LambdaQueryWrapper<Message>().eq(Message::getRoomId, roomId).orderByDesc(Message::getCreateTime));
+//
+//        List<Message> messageList = ListUtil.reverse(messagePage.getRecords());
+//
+//        List<ChatFileMessageResp> chatFileMessageRespList = messageList.stream()
+//                .filter(item -> item.getType() == 6) // 仅处理文件消息
+//                .map(item -> {
+//                    try {
+//                        String extraJson = (String) item.getExtra();
+//                        ChatMessageVo.FileInfo fileInfo = objectMapper.readValue(extraJson, ChatMessageVo.FileInfo.class);
+//
+//                        // 创建 ChatFileMessageResp 并手动设置字段
+//                        ChatFileMessageResp fileResp = new ChatFileMessageResp();
+//                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item);
+////                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item.getContent());
+//                        fileResp.setFromUser(resp.getFromUser());
+//                        fileResp.setRoomId(item.getRoomId());
+//                        fileResp.setFileInfo(fileInfo);
+//
+//                        // 设置文件详细信息
+//                        ChatFileMessageResp.FileMessage fileMessage = new ChatFileMessageResp.FileMessage();
+//                        fileMessage.setFileName(fileInfo.getName());
+//                        fileMessage.setFileUrl(fileInfo.getUrl());
+//                        fileMessage.setFileSize(fileInfo.getSize());
+//                        fileResp.setFileMessage(fileMessage);
+//
+//                        return fileResp;
+//
+//                    } catch (Exception e) {
+//                        // 记录错误并跳过此文件消息
+//                        log.error("Error parsing file message", e);
+//                        return null;
+//                    }
+//                })
+//                .filter(item -> item != null) // 过滤掉返回 null 的消息
+//                .collect(Collectors.toList());
+//
+//        // 返回文件消息的分页数据
+//        Page<ChatFileMessageResp> messageVoPage = new Page<>(current, size, messagePage.getTotal());
+//        messageVoPage.setRecords(chatFileMessageRespList);
+//        return messageVoPage;
+//    }
+
     @Override
     public Page<ChatFileMessageResp> listFileMessageVoByPage(MessageQueryRequest messageQueryRequest) {
         Long roomId = messageQueryRequest.getRoomId();
@@ -103,13 +243,21 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .filter(item -> item.getType() == 6) // 仅处理文件消息
                 .map(item -> {
                     try {
-                        String extraJson = (String) item.getExtra();
+                        // 直接从 extra 获取文件信息并转换
+                        String extraJson = item.getExtra();
                         ChatMessageVo.FileInfo fileInfo = objectMapper.readValue(extraJson, ChatMessageVo.FileInfo.class);
+
+                        // 使用新方法构造 ChatMessageResp
+                        ChatMessageResp resp = wsAdapter.getMessageVo(
+                                item.getFromUid(),
+                                item.getContent(),
+                                item.getType(),
+                                item.getExtra(),
+                                item.getCreateTime()
+                        );
 
                         // 创建 ChatFileMessageResp 并手动设置字段
                         ChatFileMessageResp fileResp = new ChatFileMessageResp();
-                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item);
-//                        ChatMessageResp resp = wsAdapter.getMessageVo(item.getFromUid(), item.getContent());
                         fileResp.setFromUser(resp.getFromUser());
                         fileResp.setRoomId(item.getRoomId());
                         fileResp.setFileInfo(fileInfo);
@@ -137,6 +285,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         messageVoPage.setRecords(chatFileMessageRespList);
         return messageVoPage;
     }
+
 
     @Override
     public List<Message> getRoomMessages(Long roomId, Integer limit) {

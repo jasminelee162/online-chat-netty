@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cong.wego.common.ErrorCode;
@@ -12,12 +13,14 @@ import com.cong.wego.common.event.UserOfflineEvent;
 import com.cong.wego.common.event.UserOnlineEvent;
 import com.cong.wego.common.event.UserPrivateMessageEvent;
 import com.cong.wego.config.ThreadPoolConfig;
+import com.cong.wego.model.dto.ws.ExtendedPrivateMessageDTO;
 import com.cong.wego.model.dto.ws.GroupMessageDTO;
 import com.cong.wego.model.dto.ws.PrivateMessageDTO;
 import com.cong.wego.model.dto.ws.WSChannelExtraDTO;
 import com.cong.wego.model.entity.User;
 import com.cong.wego.model.entity.UserRoomRelate;
 import com.cong.wego.model.enums.chat.MessageTypeEnum;
+import com.cong.wego.model.enums.ws.WSReqTypeEnum;
 import com.cong.wego.model.vo.message.ChatMessageVo;
 import com.cong.wego.model.vo.ws.request.WSBaseReq;
 import com.cong.wego.model.vo.ws.response.ChatMessageResp;
@@ -43,6 +46,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.bouncycastle.asn1.x500.style.RFC4519Style.uid;
 
 
 /**
@@ -168,7 +172,10 @@ public class WebSocketServiceImpl implements WebSocketService {
         System.out.println("发送消息token");
         // 发送数据
         String content = req.getData();
+        System.out.println(content);
         ChatMessageVo chatMessageVo = JSONUtil.toBean(content, ChatMessageVo.class);
+        System.out.println(chatMessageVo);
+        System.out.println("===================================");
         // 接收消息 用户id
         Long uid = req.getUserId();
         sendByType(chatMessageVo, token, uid);
@@ -182,17 +189,19 @@ public class WebSocketServiceImpl implements WebSocketService {
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.of(chatMessageVo.getType());
         System.out.println(messageTypeEnum);
         String messageContent = chatMessageVo.getContent();
+        String extra = chatMessageVo.getExtra();
         long loginUserId = Long.parseLong(StpUtil.getLoginIdByToken(token).toString());
         switch (messageTypeEnum) {
             case PRIVATE:
-                PrivateMessageDTO privateMessageDTO = PrivateMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toUserId(uid).build();
+                PrivateMessageDTO privateMessageDTO = com.cong.wego.model.dto.ws.PrivateMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toUserId(uid).build();
+                ExtendedPrivateMessageDTO extendedPrivateMessageDTO = ExtendedPrivateMessageDTO.extendedBuilder().fromUserId(loginUserId).toUserId(uid).content(messageContent).extra(extra).build();
                 // 发布用户私信事件
                 applicationEventPublisher.publishEvent(new UserPrivateMessageEvent(this, privateMessageDTO));
                 //判断接收用户对象是否登录
                 CopyOnWriteArrayList<Channel> channels = ONLINE_UID_MAP.get(uid);
                 //对方不在线，只需要保存消息就好了
                 if (channels != null) {
-                    WSBaseResp<ChatMessageResp> baseResp = wsAdapter.buildPrivateMessageResp(privateMessageDTO);
+                    WSBaseResp<ChatMessageResp> baseResp = wsAdapter.buildExtendPrivateMessageResp(extendedPrivateMessageDTO);
                     channels.forEach(channelUser -> threadPoolTaskExecutor.execute(() -> sendMsg(channelUser, baseResp)));
                 }
                 break;
@@ -273,4 +282,112 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
         return true;
     }
+
+    @Override
+    public void handleVideoSignal(Channel fromChannel, WSBaseReq signalReq) {
+        String token = NettyUtil.getAttr(fromChannel, NettyUtil.TOKEN);
+        Long fromUid = Long.parseLong(StpUtil.getLoginIdByToken(token).toString());
+        String type = String.valueOf(signalReq.getType());
+        String data = signalReq.getData();
+        JSONObject jsonData = JSONUtil.parseObj(data);
+        Long targetUid = jsonData.getLong("targetUid");
+
+        if (targetUid == null) {
+            log.warn("视频信令缺少目标用户ID，fromUid: {}", fromUid);
+            return;
+        }
+
+        WSBaseResp<Object> signalResp = WSBaseResp.builder()
+                .type(Integer.valueOf(type))
+                .data(JSONUtil.createObj()
+                        .set("fromUid", fromUid)
+                        .set("data", jsonData.get("data"))
+                ).build();
+
+        CopyOnWriteArrayList<Channel> targetChannels = ONLINE_UID_MAP.get(targetUid);
+        if (CollUtil.isEmpty(targetChannels)) {
+            log.info("目标用户不在线，type: {}, targetUid: {}", type, targetUid);
+            return;
+        }
+
+        targetChannels.forEach(channel -> threadPoolTaskExecutor.execute(() -> sendMsg(channel, signalResp)));
+
+        log.info("已转发视频信令，type: {}, fromUid: {}, targetUid: {}", type, fromUid, targetUid);
+    }
+
+    @Override
+    public void handleVideoCallReq(Channel channel, WSBaseReq req) {
+        Long toUserId = req.getUserId();
+        // 获取目标用户的所有连接
+        CopyOnWriteArrayList<Channel> toChannels = ONLINE_UID_MAP.get(toUserId);
+
+        if (toChannels != null && !toChannels.isEmpty()) {
+            // 如果目标用户有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            Channel toChannel = toChannels.get(0);
+
+            // 创建视频通话请求的消息
+            WSBaseReq videoCallReq = new WSBaseReq();
+            videoCallReq.setType(WSReqTypeEnum.VIDEO_CALL.getType());
+            videoCallReq.setFrom(req.getFrom());
+
+            // 将请求转发给目标用户
+            toChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallReq)));
+            log.info("已发送视频通话请求，fromUserId: {}, toUserId: {}", req.getFrom(), toUserId);
+        } else {
+            log.warn("目标用户不在线，无法发送视频通话请求，fromUserId: {}, toUserId: {}", req.getFrom(), toUserId);
+        }
+    }
+
+    @Override
+    public void handleVideoAccept(Channel channel, WSBaseReq req) {
+        Long fromUserId = Long.valueOf(req.getFrom());
+        // 获取发起视频通话请求的用户的所有连接
+        CopyOnWriteArrayList<Channel> fromChannels = ONLINE_UID_MAP.get(fromUserId);
+
+        if (fromChannels != null && !fromChannels.isEmpty()) {
+            // 如果发起者有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            Channel fromChannel = fromChannels.get(0);
+
+            // 创建视频通话接受的响应消息
+            WSBaseReq videoCallResp = new WSBaseReq();
+            videoCallResp.setType(WSReqTypeEnum.VIDEO_ACCEPT.getType());
+            videoCallResp.setFrom(req.getFrom());
+
+            // 将接受响应发送给发起通话的用户
+            fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
+            log.info("已接受视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
+        } else {
+            log.warn("无法找到发起通话的用户，fromUserId: {}", req.getFrom());
+        }
+    }
+
+    @Override
+    public void handleVideoReject(Channel channel, WSBaseReq req) {
+        Long fromUserId = Long.valueOf(req.getFrom());
+        // 获取发起视频通话请求的用户的所有连接
+        CopyOnWriteArrayList<Channel> fromChannels = ONLINE_UID_MAP.get(fromUserId);
+
+        if (fromChannels != null && !fromChannels.isEmpty()) {
+            // 如果发起者有多个连接，可以选择发送到第一个连接，或者根据需求选择目标连接
+            Channel fromChannel = fromChannels.get(0);
+
+            // 创建视频通话拒绝的响应消息
+            WSBaseReq videoCallResp = new WSBaseReq();
+            videoCallResp.setType(WSReqTypeEnum.VIDEO_REJECT.getType());
+            videoCallResp.setFrom(req.getFrom());
+
+            // 将拒绝响应发送给发起通话的用户
+            fromChannel.writeAndFlush(new TextWebSocketFrame(JSONUtil.toJsonStr(videoCallResp)));
+            log.info("已拒绝视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
+        } else {
+            log.warn("无法找到发起通话的用户，fromUserId: {}", req.getFrom());
+        }
+    }
+
+    private Channel getChannelByUserId(String userId) {
+        // 根据用户ID获取在线的Channel
+        return ONLINE_UID_MAP.get(Long.parseLong(userId)).stream().findFirst().orElse(null);
+    }
+
+
 }

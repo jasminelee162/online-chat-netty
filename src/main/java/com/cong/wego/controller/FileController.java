@@ -239,7 +239,36 @@ public class FileController {
             }
 
             // 发送文件信息（文件名和 URL）
-            wsBaseReq.setData(JSONUtil.toJsonStr(new ChatMessageVo(wsBaseReq.getType(), "file", originalFilename, fileUrl)));  // 发送文件信息
+//            wsBaseReq.setData(JSONUtil.toJsonStr(new ChatMessageVo(wsBaseReq.getType(), "file", originalFilename, fileUrl)));  // 发送文件信息
+// 创建 ChatMessageVo 对象
+            ChatMessageVo chatMessageVo = new ChatMessageVo();
+            System.out.println(type);
+            chatMessageVo.setType("PRIVATE".equals(type) ? 2 : 1);  // 消息类型：1 群聊，2 私聊
+            chatMessageVo.setContent(originalFilename);  // 文件名
+            chatMessageVo.setSendTime(message.getCreateTime());  // 发送时间
+            chatMessageVo.setContentType("file");  // 内容类型为“文件”
+            chatMessageVo.setToUid("PRIVATE".equals(type) ? String.valueOf(toUserId) : null);  // 私聊目标用户
+
+// 构建文件信息
+            ChatMessageVo.FileInfo fileInfoObj = new ChatMessageVo.FileInfo();
+            fileInfoObj.setName(originalFilename);  // 文件名
+            fileInfoObj.setUrl(fileUrl);  // 文件下载链接
+            fileInfoObj.setSize(file.getSize());  // 文件大小（字节）
+            fileInfoObj.setType(file.getContentType());  // 文件 MIME 类型
+
+// 设置文件信息
+            chatMessageVo.setFile(fileInfoObj);  // 设置文件信息
+
+// 将保存的消息的 id 和 extra 添加到 chatMessageVo 中
+            chatMessageVo.setExtra(message.getExtra());  // 设置消息的额外信息（如果有）
+            System.out.println(chatMessageVo);
+
+// 转成 JSON 并发送 WebSocket 消息
+            wsBaseReq.setData(JSONUtil.toJsonStr(chatMessageVo));  // 转换为 JSON 字符串并发送
+            System.out.println(JSONUtil.toJsonStr(chatMessageVo));
+
+
+            System.out.println("==========================================================");
             log.info("[文件上传] 发送消息: {}", wsBaseReq.getData());
 
             // 发送消息给 WebSocket

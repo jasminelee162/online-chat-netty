@@ -2,6 +2,7 @@ package com.cong.wego.controller;
 
 import com.cong.wego.model.enums.ws.WSReqTypeEnum;
 
+import com.cong.wego.websocket.handler.NettyWebSocketServerHandler;
 import com.cong.wego.websocket.handler.SignalingSocketHandler;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,20 +17,13 @@ import java.util.Map;
 @RequestMapping("/chat")
 public class VideoCallController {
 
-    private final SignalingSocketHandler signalingSocketHandler;
 
-    @Autowired
-    public VideoCallController(SignalingSocketHandler signalingSocketHandler) {
-        this.signalingSocketHandler = signalingSocketHandler;
-    }
+
+
     @PostMapping("/video/call")
     public ResponseEntity<Object> initiateVideoCall(@RequestBody VideoCallRequest request) {
         String fromUserId = request.getFromUserId();
         String toUserId = request.getToUserId();
-        SignalingSocketHandler.VideoSignalMessage message =
-                new SignalingSocketHandler.VideoSignalMessage(fromUserId, toUserId, WSReqTypeEnum.VIDEO_CALL.name());
-
-        signalingSocketHandler.sendSignalMessage(message);
 
         // ✅ 返回 Java 对象，让 Spring 自动转成 application/json
         Map<String, String> responseMap = new HashMap<>();

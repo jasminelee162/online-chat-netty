@@ -5,28 +5,21 @@ import lombok.Data;
 import java.util.Date;
 
 /**
- * 聊天消息 VO
- * 用于前端展示统一格式的消息（文本、文件等）
+ * 聊天消息VO
  *
- * @author
- * @date 2025/04/31
+ * @author liuhuaicong
+ * @date 2023/10/31
  */
 @Data
 public class ChatMessageVo {
     /**
-     * 消息类型（1 群聊，2 私聊）
+     * 消息类型 1、群聊 2、私聊
      */
     private Integer type;
-
-    /**
-     * 消息内容：
-     * - 文本消息：文本内容
-     * - 文件消息：通常放文件名或提示信息，如 "[文件] xxx.pdf"
-     */
     private String content;
     private Date sendTime;
     private String toUid;
-
+    private String extra;
     /**
      * 内容类型：
      * - text 文本

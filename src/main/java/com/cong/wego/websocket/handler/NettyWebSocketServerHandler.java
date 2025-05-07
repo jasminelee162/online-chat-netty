@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 
-import static com.cong.wego.websocket.NettyWebSocketServer.HTTP_REQUEST_KEY;
+
 
 
 /**
@@ -94,11 +94,11 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
         return SpringUtil.getBean(WebSocketService.class);
     }
 
-    // 读取客户端发送的请求报文
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) {
         WSBaseReq wsBaseReq = JSONUtil.toBean(msg.text(), WSBaseReq.class);
         WSReqTypeEnum wsReqTypeEnum = WSReqTypeEnum.of(wsBaseReq.getType());
+
         switch (wsReqTypeEnum) {
             case LOGIN:
                 getService().handleLoginReq(ctx.channel());
@@ -106,32 +106,25 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
             case HEARTBEAT:
                 break;
             case CHAT:
-                getService().sendMessage(ctx.channel(),wsBaseReq);
+                getService().sendMessage(ctx.channel(), wsBaseReq);
                 break;
+            case VIDEO_CALL:
+                getService().handleVideoCallReq(ctx.channel(), wsBaseReq);
+                break;
+            case VIDEO_ACCEPT:
+                getService().handleVideoAccept(ctx.channel(), wsBaseReq);
+                break;
+            case VIDEO_REJECT:
+                getService().handleVideoReject(ctx.channel(), wsBaseReq);
+                break;
+            case VIDEO_SIGNAL:
+                getService().handleVideoSignal(ctx.channel(), wsBaseReq);
+                break;
+
             default:
-                log.info("未知类型");
+                log.warn("未知类型: {}", wsBaseReq.getType());
         }
     }
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof FullHttpRequest) {
-            FullHttpRequest request = (FullHttpRequest) msg;
-            QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
-            Map<String, List<String>> parameters = decoder.parameters();
 
-            String token = CollUtil.getFirst(parameters.get("token"));
-            String userId = CollUtil.getFirst(parameters.get("userId"));
-
-            if (token != null) {
-                NettyUtil.setAttr(ctx.channel(), NettyUtil.TOKEN, token);
-            }
-            if (userId != null) {
-                NettyUtil.setAttr(ctx.channel(), NettyUtil.UID, Long.parseLong(userId));
-            }
-
-            ctx.channel().attr(HTTP_REQUEST_KEY).set(request);
-        }
-        super.channelRead(ctx, msg);
-    }
 
 }

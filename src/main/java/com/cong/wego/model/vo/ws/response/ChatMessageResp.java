@@ -55,6 +55,9 @@ public class ChatMessageResp {
 
         @ApiModelProperty("文件信息（如果是文件消息）")
         private ChatMessageVo.FileInfo file;  // ✅ 把这个放在 Message 里面
+
+        private String extra;
+
     }
 
 }

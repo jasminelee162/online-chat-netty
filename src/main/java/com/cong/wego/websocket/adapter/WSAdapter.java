@@ -1,6 +1,7 @@
 package com.cong.wego.websocket.adapter;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cong.wego.model.dto.ws.ExtendedPrivateMessageDTO;
 import com.cong.wego.model.dto.ws.GroupMessageDTO;
 import com.cong.wego.model.dto.ws.PrivateMessageDTO;
 import com.cong.wego.model.entity.Message;
@@ -40,6 +41,30 @@ public class WSAdapter {
         //发送信息
         String content = privateMessageDTO.getContent();
         ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content, null);
+        // 创建WSBaseResp对象
+        WSBaseResp<ChatMessageResp> wsBaseResp = new WSBaseResp<>();
+        // 设置房间ID
+        Long toUserId = privateMessageDTO.getToUserId();
+        long uid1 = loginUserId > toUserId ? toUserId : loginUserId;
+        long uid2 = loginUserId > toUserId ? loginUserId : toUserId;
+        RoomFriend roomFriend = roomFriendService.getOne(new LambdaQueryWrapper<RoomFriend>()
+                .eq(RoomFriend::getUid1, uid1).eq(RoomFriend::getUid2, uid2));
+        if (roomFriend != null) {
+            chatMessageResp.setRoomId(roomFriend.getRoomId());
+        }
+        // 设置数据和类型
+        wsBaseResp.setData(chatMessageResp);
+        wsBaseResp.setType(WSReqTypeEnum.CHAT.getType());
+        return wsBaseResp;
+    }
+
+    public WSBaseResp<ChatMessageResp> buildExtendPrivateMessageResp(ExtendedPrivateMessageDTO privateMessageDTO) {
+        // 获取私信的发送者
+        Long loginUserId = privateMessageDTO.getFromUserId();
+        //发送信息
+        String content = privateMessageDTO.getContent();
+        ChatMessageResp chatMessageResp = getMessageVo(loginUserId, content, null);
+        chatMessageResp.getMessage().setExtra(privateMessageDTO.getExtra());
         // 创建WSBaseResp对象
         WSBaseResp<ChatMessageResp> wsBaseResp = new WSBaseResp<>();
         // 设置房间ID
@@ -120,6 +145,7 @@ public class WSAdapter {
         // 设置消息对象
         chatMessageResp.setMessage(message);
         // 设置消息时间
+        message.setType(1);
 
         return chatMessageResp;
     }
@@ -151,6 +177,7 @@ public class WSAdapter {
                 FileInfo fileInfo = new FileInfo();
                 fileInfo.setName(extra.get("fileName").asText());
                 fileInfo.setUrl(extra.get("fileUrl").asText());
+//                fileInfo.setUrl(extra.has("fileUrl") ? extra.get("fileUrl").asText() : "");
                 if (extra.has("size")) {
                     fileInfo.setSize(extra.get("size").asLong());
                 }
