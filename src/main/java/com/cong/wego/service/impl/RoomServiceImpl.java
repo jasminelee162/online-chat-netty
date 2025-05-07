@@ -129,8 +129,36 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
 
     }
 
-/*    @Override
+    @Override
     public List<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
+
+        List<AddFriendVo> addFriendVoList = new ArrayList<>();
+        String id = friendQueryRequest.getId();
+        // 判断ID是否为纯数字或以数字开头的字符串
+        /*if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
+            return null;
+        }*/
+        if(CommonUtils.isNumeric(id)){
+            Long uid = Long.valueOf(id);
+            User user = userService.getById(uid);
+            if (user != null) {
+                RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
+                AddFriendVo addFriendVo = getAddFriendVo(user, roomFriend);
+                addFriendVoList.add(addFriendVo);
+            }
+        }
+
+        List<User> users = userService.getUsersByName(id);
+        users.forEach(item -> {
+            RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
+            AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
+            addFriendVoList.add(addFriendVo1);
+        });
+        return addFriendVoList;
+    }
+
+    /*@Override
+    public AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest) {
 
         List<AddFriendVo> addFriendVoList = new ArrayList<>();
         String id = friendQueryRequest.getId();
@@ -153,36 +181,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
             AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
             addFriendVoList.add(addFriendVo1);
         });
-        return addFriendVoList;
-    }*/
-
-    @Override
-    public AddFriendVo searchFriendVo(FriendQueryRequest friendQueryRequest) {
-
-        List<AddFriendVo> addFriendVoList = new ArrayList<>();
-        String id = friendQueryRequest.getId();
-        // 判断ID是否为纯数字或以数字开头的字符串
-        /*if (!CommonUtils.isNumeric(id) && !CommonUtils.isNumericExceptLastS(id)) {
-            return null;
-        }*/
-        Long uid = Long.valueOf(id);
-        User user = userService.getById(uid);
-        if (user == null) {
-            return null;
-        }
-        // 查询用户和房间的关系，以确定是否为好友
-        RoomFriend roomFriend = roomFriendService.getRoomFriend(uid);
-        AddFriendVo addFriendVo = getAddFriendVo(user, roomFriend);
-        addFriendVoList.add(addFriendVo);
-        List<User> users = userService.getUsersByName(id);
-        users.forEach(item -> {
-            RoomFriend roomFriend1 = roomFriendService.getRoomFriend(item.getId());
-            AddFriendVo addFriendVo1 = getAddFriendVo(item, roomFriend1);
-            addFriendVoList.add(addFriendVo1);
-        });
         return addFriendVoList.get(0);
     }
-
+*/
     @NotNull
     private static AddFriendVo getAddFriendVo(User user, RoomFriend roomFriend) {
         AddFriendVo addFriendVo = new AddFriendVo();
