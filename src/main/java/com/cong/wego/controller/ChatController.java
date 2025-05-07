@@ -61,17 +61,17 @@ public class ChatController {
         return ResultUtils.success(list);
     }
 
-    /*@PostMapping("/search/friend/vo")
+    @PostMapping("/search/friend/vo")
     @ApiOperation(value = "获取群聊或者用户信息")
     public BaseResponse<List<AddFriendVo>> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
-    }*/
+    }
 
-    @PostMapping("/search/friend/vo")
+    /*@PostMapping("/search/friend/vo")
     @ApiOperation(value = "获取群聊或者用户信息")
     public BaseResponse<AddFriendVo> searchFriendVo(FriendQueryRequest friendQueryRequest) {
         return ResultUtils.success(roomService.searchFriendVo(friendQueryRequest));
-    }
+    }*/
 
     @PostMapping("/room")
     @ApiOperation(value = "新建群聊房间")
