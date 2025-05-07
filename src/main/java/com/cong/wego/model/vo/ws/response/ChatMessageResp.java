@@ -1,5 +1,6 @@
 package com.cong.wego.model.vo.ws.response;
 
+import com.cong.wego.model.vo.message.ChatMessageVo;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,10 +22,13 @@ public class ChatMessageResp {
 
     @ApiModelProperty("发送者信息")
     private UserInfo fromUser;
+
     @ApiModelProperty("消息详情")
     private Message message;
+
     @ApiModelProperty("房间id")
     private Long roomId;
+
     @Data
     public static class UserInfo {
         @ApiModelProperty("用户名称")
@@ -39,12 +43,21 @@ public class ChatMessageResp {
     public static class Message {
         @ApiModelProperty("消息id")
         private Long id;
+
         @ApiModelProperty("消息发送时间")
         private Date sendTime;
+
         @ApiModelProperty("消息内容")
         private String content;
+
         @ApiModelProperty("消息类型 1正常文本 2.爆赞 （点赞超过10）3.危险发言（举报超5）")
         private Integer type;
+
+        @ApiModelProperty("文件信息（如果是文件消息）")
+        private ChatMessageVo.FileInfo file;  // ✅ 把这个放在 Message 里面
+
+        private String extra;
+
     }
 
 }

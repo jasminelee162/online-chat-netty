@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
  * @author 聪
  * @TableName message
  */
-@TableName(value = "message")
+@TableName(value ="message")
 @Data
 @Builder
 @AllArgsConstructor
@@ -65,9 +65,9 @@ public class Message implements Serializable {
     private Integer type;
 
     /**
-     * 扩展信息（用于存储文件信息等）
+     * 扩展信息
      */
-    private String extra; // 改为 String 类型，存储 JSON 字符串
+    private Object extra;
 
     /**
      * 创建时间

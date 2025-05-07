@@ -209,11 +209,11 @@ public class FileController {
             message.setStatus(0); // 正常状态
             log.info("[文件上传] 消息对象: {}", message);
 
-            // 保存消息到数据库（此时不会拼接额外的消息）
-            if (message.getType() == 6) { // 只处理文件类型的消息
-                messageService.save(message);
-                log.info("[文件上传] 消息已保存到数据库");
-            }
+//            // 保存消息到数据库（此时不会拼接额外的消息）
+//            if (message.getType() == 6) { // 只处理文件类型的消息
+//                messageService.save(message);
+//                log.info("[文件上传] 消息已保存到数据库");
+//            }
 
             // 验证发送对象的有效性
             if ("PRIVATE".equals(type) && toUserId == null) {

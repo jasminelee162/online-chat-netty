@@ -15,9 +15,11 @@ public class ChatMessageVo {
     /**
      * 消息类型 1、群聊 2、私聊
      */
+    private String toUid;
     private Integer type;
     private String content;
     private Date sendTime;
+<<<<<<< HEAD
     private String toUid;
     private String extra;
     /**
@@ -87,4 +89,6 @@ public class ChatMessageVo {
         public FileInfo() {}
     }
 
+=======
+>>>>>>> ddbbfb08c55115f0663dec6d0e6f4a35b7b1dd12
 }

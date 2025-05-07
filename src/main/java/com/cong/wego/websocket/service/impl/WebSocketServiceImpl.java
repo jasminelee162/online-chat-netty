@@ -13,6 +13,7 @@ import com.cong.wego.common.event.UserOfflineEvent;
 import com.cong.wego.common.event.UserOnlineEvent;
 import com.cong.wego.common.event.UserPrivateMessageEvent;
 import com.cong.wego.config.ThreadPoolConfig;
+import com.cong.wego.model.dto.ws.ExtendedPrivateMessageDTO;
 import com.cong.wego.model.dto.ws.GroupMessageDTO;
 import com.cong.wego.model.dto.ws.PrivateMessageDTO;
 import com.cong.wego.model.dto.ws.WSChannelExtraDTO;
@@ -152,7 +153,6 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Override
     public void sendMessage(Channel channel, WSBaseReq req) {
-        System.out.println("发送消息channel");
         // 异常返回
         WSBaseResp<Object> errorResp = WSBaseResp.builder().type(1).data(ErrorCode.FORBIDDEN_ERROR.getMessage()).build();
         // 发送数据
@@ -172,7 +172,10 @@ public class WebSocketServiceImpl implements WebSocketService {
         System.out.println("发送消息token");
         // 发送数据
         String content = req.getData();
+        System.out.println(content);
         ChatMessageVo chatMessageVo = JSONUtil.toBean(content, ChatMessageVo.class);
+        System.out.println(chatMessageVo);
+        System.out.println("===================================");
         // 接收消息 用户id
         Long uid = req.getUserId();
         sendByType(chatMessageVo, token, uid);
@@ -180,20 +183,25 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
 
     private void sendByType(ChatMessageVo chatMessageVo, String token, Long uid) {
-        System.out.println("判断发送类型");
+        System.out.println(chatMessageVo.getType());
+        System.out.println("sendbytype中的" + token);
+        System.out.println(chatMessageVo);
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.of(chatMessageVo.getType());
+        System.out.println(messageTypeEnum);
         String messageContent = chatMessageVo.getContent();
+        String extra = chatMessageVo.getExtra();
         long loginUserId = Long.parseLong(StpUtil.getLoginIdByToken(token).toString());
         switch (messageTypeEnum) {
             case PRIVATE:
-                PrivateMessageDTO privateMessageDTO = PrivateMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toUserId(uid).build();
+                PrivateMessageDTO privateMessageDTO = com.cong.wego.model.dto.ws.PrivateMessageDTO.builder().content(messageContent).fromUserId(loginUserId).toUserId(uid).build();
+                ExtendedPrivateMessageDTO extendedPrivateMessageDTO = ExtendedPrivateMessageDTO.extendedBuilder().fromUserId(loginUserId).toUserId(uid).content(messageContent).extra(extra).build();
                 // 发布用户私信事件
                 applicationEventPublisher.publishEvent(new UserPrivateMessageEvent(this, privateMessageDTO));
                 //判断接收用户对象是否登录
                 CopyOnWriteArrayList<Channel> channels = ONLINE_UID_MAP.get(uid);
                 //对方不在线，只需要保存消息就好了
                 if (channels != null) {
-                    WSBaseResp<ChatMessageResp> baseResp = wsAdapter.buildPrivateMessageResp(privateMessageDTO);
+                    WSBaseResp<ChatMessageResp> baseResp = wsAdapter.buildExtendPrivateMessageResp(extendedPrivateMessageDTO);
                     channels.forEach(channelUser -> threadPoolTaskExecutor.execute(() -> sendMsg(channelUser, baseResp)));
                 }
                 break;
