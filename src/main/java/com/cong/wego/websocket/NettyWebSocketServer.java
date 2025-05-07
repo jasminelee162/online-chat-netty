@@ -16,6 +16,9 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
@@ -25,6 +28,11 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.net.ssl.KeyManagerFactory;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 
 /**
  * Netty Web 套接字服务器
@@ -40,15 +48,14 @@ public class NettyWebSocketServer {
     // 创建线程池执行器
     private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(8);
-    // private static final Map<String, ChannelHandlerContext> userChannelMap = new ConcurrentHashMap<>();
 
     /**
      * 启动 ws server
      *
-     * @throws InterruptedException 中断异常
+     * @throws Exception 异常
      */
     @PostConstruct
-    public void start() throws InterruptedException {
+    public void start() throws Exception {
         run();
     }
 
@@ -67,9 +74,26 @@ public class NettyWebSocketServer {
     /**
      * 启动
      *
-     * @throws InterruptedException 中断异常
+     * @throws Exception 异常
      */
-    public void run() throws InterruptedException {
+    public void run() throws Exception {
+        // 加载密钥库
+        KeyStore ks = KeyStore.getInstance("JKS");
+        try (InputStream ksInputStream = getClass().getClassLoader().getResourceAsStream("gornix.jks")) {
+            if (ksInputStream == null) {
+                throw new IllegalArgumentException("未找到 gornix.jks 文件");
+            }
+            ks.load(ksInputStream, "123456".toCharArray());
+        }
+
+        // 初始化 KeyManagerFactory
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, "654321".toCharArray());
+
+        // 初始化 SSLContext
+        SslContext sslContext = SslContextBuilder.forServer(kmf)
+                .build();
+
         // 服务器启动引导对象
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(bossGroup, workerGroup)
@@ -81,6 +105,8 @@ public class NettyWebSocketServer {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
+                        // 添加 SSL 处理器
+                        pipeline.addFirst(sslContext.newHandler(socketChannel.alloc()));
                         //30秒客户端没有向服务器发送心跳则关闭连接
                         pipeline.addLast(new IdleStateHandler(30, 0, 0));
                         // 因为使用http协议，所以需要使用http的编码器，解码器
@@ -101,5 +127,4 @@ public class NettyWebSocketServer {
         serverBootstrap.bind(WEB_SOCKET_PORT).sync();
         log.info("Netty启动成功");
     }
-
 }
