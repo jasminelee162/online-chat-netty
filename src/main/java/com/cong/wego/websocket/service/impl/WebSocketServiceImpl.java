@@ -350,30 +350,33 @@ public class WebSocketServiceImpl implements WebSocketService {
     @Override
     public void handleVideoAccept(Channel channel, WSBaseReq req) {
         Long fromUserId = Long.valueOf(req.getFrom());
-        log.debug("处理视频接受请求，fromUserId: {}", fromUserId);
+        Long toUserId = Long.valueOf(req.getTo());
+        log.debug("处理视频接受请求，fromUserId: {}, toUserId: {}", fromUserId, toUserId);
 
-        CopyOnWriteArrayList<Channel> fromChannels = ONLINE_UID_MAP.get(fromUserId);
+        // 获取发送方的通道
+        CopyOnWriteArrayList<Channel> toChannels = ONLINE_UID_MAP.get(toUserId);
 
-        if (fromChannels != null && !fromChannels.isEmpty()) {
-            log.debug("找到发起通话用户的通道，数量: {}", fromChannels.size());
+        if (toChannels != null && !toChannels.isEmpty()) {
+            log.debug("找到发送方用户的通道，数量: {}", toChannels.size());
 
-            Channel fromChannel = fromChannels.get(0);
+            Channel toChannel = toChannels.get(0);
 
+            // 构造视频通话接受响应
             WSBaseReq videoCallResp = new WSBaseReq();
             videoCallResp.setType(WSReqTypeEnum.VIDEO_ACCEPT.getType());
-            videoCallResp.setFrom(req.getFrom());
-            videoCallResp.setTo(req.getTo());
+            videoCallResp.setFrom(req.getTo()); // 接收方的用户ID
+            videoCallResp.setTo(req.getFrom()); // 发送方的用户ID
 
             String json = JSONUtil.toJsonStr(videoCallResp);
             log.debug("构造的视频通话接受响应: {}", json);
 
-            fromChannel.writeAndFlush(new TextWebSocketFrame(json));
-            log.info("已接受视频通话，fromUserId: {}, toUserId: {}", req.getFrom(), req.getTo());
+            // 发送给发送方
+            toChannel.writeAndFlush(new TextWebSocketFrame(json));
+            log.info("已接受视频通话，fromUserId: {}, toUserId: {}", fromUserId, toUserId);
         } else {
-            log.warn("无法找到发起通话的用户，fromUserId: {}", req.getFrom());
+            log.warn("无法找到发送方的用户，toUserId: {}", toUserId);
         }
     }
-
     @Override
     public void handleVideoReject(Channel channel, WSBaseReq req) {
         Long fromUserId = Long.valueOf(req.getFrom());
