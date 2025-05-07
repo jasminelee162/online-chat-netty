@@ -274,52 +274,38 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
         return true;
     }
+    // 修改后的 handleVideoSignal 方法
     @Override
-    public void handleVideoSignal(Channel fromChannel, WSBaseReq signalReq) {
-        String token = NettyUtil.getAttr(fromChannel, NettyUtil.TOKEN);
-        log.debug("接收到视频信令，原始 token: {}", token);
+    public void handleVideoSignal(Channel fromChannel, WSBaseReq req) {
+        // 获取原本的接收方 ID
+        Long toUserId = Long.valueOf(req.getTo());
+        log.debug("处理视频信令请求，原接收方 toUserId: {}", toUserId);
 
-        Long fromUid = Long.parseLong(StpUtil.getLoginIdByToken(token).toString());
-        log.debug("解析出 fromUid: {}", fromUid);
-
-        String type = String.valueOf(signalReq.getType());
-        String data = signalReq.getData();
-        log.debug("信令类型: {}, 原始数据: {}", type, data);
-
+        String type = String.valueOf(req.getType());
+        String data = req.getData();
         JSONObject jsonData = JSONUtil.parseObj(data);
-        Long targetUid = jsonData.getLong("targetUid");
+        // 获取原本的发送方 ID
+        Long fromUid = Long.parseLong(StpUtil.getLoginIdByToken(NettyUtil.getAttr(fromChannel, NettyUtil.TOKEN)).toString());
 
-        if (targetUid == null) {
-            log.warn("视频信令缺少目标用户ID，fromUid: {}", fromUid);
-            return;
-        }
-
-        log.debug("目标用户 targetUid: {}", targetUid);
-
+        // ✅ 保持原始信令结构
         WSBaseResp<Object> signalResp = WSBaseResp.builder()
-                .type(Integer.valueOf(type))
-                .data(JSONUtil.createObj()
-                        .set("fromUid", fromUid)
-                        .set("targetUid", targetUid)
-                        .set("data", jsonData.get("data"))
-                ).build();
+                .type(req.getType()) // 保持原type值（如8）
+                .data(jsonData) // 直接透传原始数据
+                .build();
 
-        CopyOnWriteArrayList<Channel> targetChannels = ONLINE_UID_MAP.get(targetUid);
+        // ✅ 正确获取接收方的通道（B的通道）
+        CopyOnWriteArrayList<Channel> targetChannels = ONLINE_UID_MAP.get( toUserId);
         if (CollUtil.isEmpty(targetChannels)) {
-            log.info("目标用户不在线，type: {}, targetUid: {}", type, targetUid);
+            log.warn("目标用户不在线，targetUid: {}",  toUserId);
             return;
         }
 
-        log.debug("目标用户在线通道数: {}", targetChannels.size());
-
-        targetChannels.forEach(channel -> threadPoolTaskExecutor.execute(() -> {
-            log.debug("发送信令给 channel: {}", channel.id());
-            sendMsg(channel, signalResp);
-        }));
-
-        log.info("已转发视频信令，type: {}, fromUid: {}, targetUid: {}", type, fromUid, targetUid);
+        // ✅ 正确转发给接收方
+        targetChannels.forEach(channel ->
+                threadPoolTaskExecutor.execute(() -> sendMsg(channel, signalResp))
+        );
+        log.info("信令转发成功，type: {}, from: {} → to: {}", req.getType(), fromUid,  toUserId);
     }
-
     @Override
     public void handleVideoCallReq(Channel channel, WSBaseReq req) {
         Long toUserId = Long.valueOf(req.getTo());
@@ -346,7 +332,6 @@ public class WebSocketServiceImpl implements WebSocketService {
             log.warn("目标用户不在线，无法发送视频通话请求，fromUserId: {}, toUserId: {}", req.getFrom(), toUserId);
         }
     }
-
     @Override
     public void handleVideoAccept(Channel channel, WSBaseReq req) {
         Long fromUserId = Long.valueOf(req.getFrom());
