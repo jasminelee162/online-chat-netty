@@ -1,66 +1,129 @@
-# 微狗🐶（WeGo）
+# 在线聊天系统
 
-### 项目简介
+本项目为一个基于 Netty 的在线聊天系统，包含前后端分离架构：
 
-微狗是一个基于Java开发的简单聊天网站，旨在提供一个用户友好的界面，让用户可以注册、登录，并与其他用户进行实时聊天。该项目采用了Java技术栈以及一些常见的Web开发工具，包括Spring Boot和Netty等。
-
-### 功能特点
-
-- 用户注册与登录：用户可以通过注册功能创建新账号，并通过登录功能访问其账户。
-- 实时聊天：用户可以与其他在线用户进行实时文本聊天。
-- 用户列表：显示当前在线用户列表，方便用户选择聊天对象。
-- 简洁界面：界面设计简洁明了，易于操作。
-
-### 技术栈
-
-- Java
-- Spring Boot
-- Netty
-
-### 如何运行
-
-1. 克隆本仓库到本地计算机。
-
-```bash
-git clone https://github.com/your_repository.git
-```
-
-2. 使用IDE（如IntelliJ IDEA）打开项目。
-
-3. 配置数据库连接：打开`application.properties`文件，配置数据库连接信息。
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/your_database_name
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-```
-
-4. 运行应用程序：在IDE中运行`ChatApplication.java`文件。
-
-5. 访问应用程序：在浏览器中输入 `http://localhost:8869` 访问微狗聊天网站。
-
-6. 项目前端地址：https://github.com/lhccong/we-go-frontend
-
-
-### 贡献者
-
-- [聪](https://github.com/lhccong) - 主要开发者
-
-### 许可证
-
-该项目采用 MIT 许可证。详细信息请参阅 [LICENSE](LICENSE) 文件。
-
-### 注意事项
-
-- 本项目仅供学习和参考使用，未经授权请勿用于商业目的。
-- 欢迎贡献代码或者提出建议，您可以通过提出 Issue 或者 Pull Request 的方式参与到项目中来。
-
-### 联系方式
-
-如有任何疑问或建议，欢迎联系项目主要开发者：
-
-- 电子邮件: 771901874@qq.com
+- **后端仓库**：[online-chat-netty](https://github.com/jasminelee162/online-chat-netty)
+- **前端仓库**：[online-chat-react](https://github.com/jasminelee162/online-chat-react)
 
 ---
 
-感谢您对微狗项目的关注和支持！🐶
+## 项目简介
+
+本系统实现了用户注册、登录、好友管理、单聊、群聊、消息推送、离线消息、消息已读/未读、消息历史、权限校验等核心功能，适用于 IM 即时通讯场景。  
+采用 Netty 实现高性能长连接通信，前端基于 React + Ant Design，界面简洁，交互流畅。
+
+---
+
+## 系统架构
+
+```
+┌─────────────┐         ┌──────────────────┐
+│  React前端  │◄───────►│ Spring Boot+Netty │
+└─────────────┘         └──────────────────┘
+         │                      │
+         │      Redis/MySQL     │
+         └──────────────────────┘
+```
+
+- 前端：React + Ant Design + WebSocket 客户端
+- 后端：Spring Boot + Netty + WebSocket + Redis + MySQL
+
+---
+
+## 功能模块详解
+
+### 1. 用户模块
+
+- 用户注册、登录（密码加密存储，JWT 鉴权）
+- 支持头像上传、昵称修改
+- 用户在线/离线状态管理
+
+### 2. 好友管理
+
+- 添加好友（申请/同意/拒绝流程）
+- 删除好友、拉黑好友
+- 查看好友列表、好友信息
+
+### 3. 单聊模块
+
+- 发起单聊，实时消息推送
+- 消息已读回执、未读消息数统计
+- 消息撤回、删除
+- 聊天历史消息查询
+- 离线消息存储与补发
+
+### 4. 群聊模块
+
+- 创建群聊，邀请好友入群
+- 群主/管理员权限管理
+- 群成员管理（踢人、禁言、退群等）
+- 群组公告、群资料修改
+- 群聊消息实时推送、历史消息查询
+
+### 5. 消息服务
+
+- 基于 Netty 实现 WebSocket 长连接
+- 支持文本、表情、图片等多种消息类型
+- 消息发送确认、消息持久化（MySQL/Redis）
+- 消息推送机制（点对点、广播）
+
+### 6. 通知与系统消息
+
+- 好友请求、群邀请、系统公告通知
+- 通知已读、未读管理
+
+### 7. 安全与权限
+
+- JWT 用户身份认证
+- 敏感词过滤、消息内容安全校验
+- 权限分级（普通用户、管理员、群主）
+
+### 8. 其他扩展
+
+- 支持多端同时在线
+- 支持消息撤回、漫游消息
+- 支持简单表情包和图片发送
+
+---
+
+## 技术栈
+
+- **前端**：React, Ant Design, WebSocket
+- **后端**：Spring Boot, Netty, WebSocket, Redis, MySQL, Lombok, MyBatis
+
+---
+
+## 快速启动
+
+### 后端
+
+1. 克隆后端项目  
+   `git clone https://github.com/jasminelee162/online-chat-netty.git`
+2. 配置数据库、Redis 连接
+3. 启动 Spring Boot 应用
+
+### 前端
+
+1. 克隆前端项目  
+   `git clone https://github.com/jasminelee162/online-chat-react.git`
+2. `npm install` 安装依赖
+3. `npm start` 启动开发服务器
+
+---
+
+## 相关仓库
+
+- [online-chat-netty](https://github.com/jasminelee162/online-chat-netty) （后端源码）
+- [online-chat-react](https://github.com/jasminelee162/online-chat-react) （前端源码）
+
+---
+
+## 截图预览
+
+> 可以在此处放置前后端运行截图。
+
+---
+
+## License
+
+MIT
