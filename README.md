@@ -120,7 +120,8 @@
 
 ## 截图预览
 
-> 可以在此处放置前后端运行截图。
+<img width="2560" height="1369" alt="演示图片" src="https://github.com/user-attachments/assets/e088b613-ba4e-461f-aa80-8c7a168dcfd9" />
+
 
 ---
 
