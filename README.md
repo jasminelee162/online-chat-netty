@@ -120,7 +120,8 @@
 
 ## 截图预览
 
-<img width="2560" height="1369" alt="演示图片" src="https://github.com/user-attachments/assets/e088b613-ba4e-461f-aa80-8c7a168dcfd9" />
+
+<img width="2560" height="1369" alt="演示图片" src="https://github.com/user-attachments/assets/7546f1e7-3a70-4ca1-ad58-35709cbc9c93" />
 
 
 ---
